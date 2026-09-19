@@ -1,0 +1,19 @@
+:root {
+  --paper: #f2efe5;
+  --paper-raised: #faf8f1;
+  --paper-deep: #e7e2d4;
+  --ink: #15251e;
+  --ink-muted: #5d675f;
+  --forest: #234c36;
+  --forest-deep: #173727;
+  --sage: #8ea38c;
+  --sage-pale: #d9e0d2;
+  --amber: #b98431;
+  --amber-pale: #eadfc5;
+  --clay: #985d45;
+  --rule: rgba(35, 76, 54, 0.2);
+  --shadow: 0 18px 50px rgba(37, 47, 39, 0.09);
+  --radius: 14px;
+  --font-display: 'Lora', Georgia, serif;
+  --font-body: 'DM Sans', sans-serif;
+}

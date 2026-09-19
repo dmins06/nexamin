@@ -1,0 +1,149 @@
+.major-field {
+  position: relative;
+  min-width: 0;
+}
+
+.major-field > label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 7px;
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.major-combobox {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  color: var(--ink-muted);
+  background: #fff;
+  transition: border-color .18s, box-shadow .18s;
+}
+
+.major-combobox:focus-within {
+  border-color: var(--forest);
+  box-shadow: 0 0 0 3px rgba(35, 76, 54, .1);
+}
+
+.major-combobox.is-open {
+  border-color: var(--forest);
+  border-radius: 10px 10px 0 0;
+}
+
+.major-combobox input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+  font: inherit;
+}
+
+.major-combobox input:disabled {
+  cursor: not-allowed;
+  opacity: .62;
+}
+
+.major-results {
+  position: absolute;
+  z-index: 29;
+  top: calc(100% + 1px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--forest);
+  border-top: 0;
+  border-radius: 0 0 11px 11px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(21, 37, 30, .16);
+}
+
+.major-results > button {
+  width: 100%;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(62px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(35, 76, 54, .09);
+  color: var(--ink);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.major-results > button:hover,
+.major-results > button.is-active,
+.major-results > button[aria-selected='true'] {
+  background: var(--sage-pale);
+}
+
+.major-results > button > span:nth-child(2) {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.major-code {
+  color: var(--forest);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.major-results > p,
+.field-hint {
+  margin: 0;
+  padding: 13px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.field-hint {
+  padding: 7px 2px 0;
+}
+
+.selected-major {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 11px;
+  border-radius: 10px;
+  color: var(--forest);
+  background: var(--sage-pale);
+}
+
+.selected-major > span {
+  min-width: 0;
+  flex: 1;
+}
+
+.selected-major strong,
+.selected-major small {
+  display: block;
+}
+
+.selected-major strong {
+  overflow: hidden;
+  color: var(--ink);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-major small {
+  margin-top: 2px;
+  color: var(--ink-muted);
+  font-size: 10px;
+}
