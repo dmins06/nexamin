@@ -16,7 +16,8 @@ Hoàn thiện nền tảng học tập responsive có xác thực, dữ liệu t
 - [x] Kết bạn, chấp nhận/từ chối, chat và thông báo chấm đỏ cho tin chưa đọc.
 - [x] Responsive 360–1600px, keyboard focus, empty/error/loading state.
 - [x] `.env.example`, Docker, Render Blueprint và tài liệu chạy/deploy.
-- [ ] Đẩy GitHub private và kích hoạt Render Blueprint (cần người dùng xác thực tài khoản ngoài).
+- [x] Đẩy source code lên GitHub private.
+- [ ] Kích hoạt Render Blueprint và xác minh URL public (đang chờ xác thực Render).
 
 ## Definition of Done
 
