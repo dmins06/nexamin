@@ -17,7 +17,7 @@ Hoàn thiện nền tảng học tập responsive có xác thực, dữ liệu t
 - [x] Responsive 360–1600px, keyboard focus, empty/error/loading state.
 - [x] `.env.example`, Docker, Render Blueprint và tài liệu chạy/deploy.
 - [x] Đẩy source code lên GitHub private.
-- [ ] Kích hoạt Render Blueprint và xác minh URL public (đang chờ xác thực Render).
+- [x] Kích hoạt Render Blueprint và xác minh URL public: https://studyhubai-bar8.onrender.com.
 
 ## Definition of Done
 

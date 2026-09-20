@@ -75,6 +75,8 @@ npm run dev:backend
 
 Project có `Dockerfile` full-stack và `render.yaml`. Sau khi repo private đã có trên GitHub, tạo **New Blueprint** trong Render và chọn repo. Blueprint tạo một domain HTTPS `*.onrender.com`, PostgreSQL và Key Value. JWT được Render tự sinh; không cần commit `.env`.
 
+Ứng dụng đang hoạt động tại **https://studyhubai-bar8.onrender.com**. Production khởi động bằng `alembic upgrade head` trước Uvicorn; Alembic là nguồn duy nhất quản lý schema PostgreSQL.
+
 > Gói miễn phí phù hợp bản preview: web service ngủ khi không hoạt động, PostgreSQL miễn phí hết hạn sau 30 ngày và file upload local có thể mất khi service restart. Muốn lưu file lâu dài, đặt `STORAGE_PROVIDER=s3` và khai báo secret S3 trong Render.
 
 ## Kiểm tra chất lượng
