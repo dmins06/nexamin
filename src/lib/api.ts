@@ -67,10 +67,12 @@ export function getSession(): TokenPair | null {
 
 export function setSession(tokens: TokenPair) {
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(tokens))
+  window.dispatchEvent(new Event('studyhub:auth-changed'))
 }
 
 export function clearSession() {
   sessionStorage.removeItem(SESSION_KEY)
+  window.dispatchEvent(new Event('studyhub:auth-changed'))
 }
 
 export async function searchUniversities(query: string, signal?: AbortSignal) {

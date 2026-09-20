@@ -92,7 +92,7 @@ class PermissionScopedRetriever:
                 DocumentChunk.course_id == course_id,
             )
             .order_by(DocumentChunk.chunk_index)
-            .limit(settings.rag_top_k)
+            .limit(1000)
         )
         rows = (await self.session.execute(statement)).all()
         return [
@@ -109,16 +109,18 @@ class PermissionScopedRetriever:
 
 
 class LexicalReranker:
-    def rerank(self, query: str, chunks: list[RetrievedChunk]) -> list[RetrievedChunk]:
+    def rerank(
+        self, query: str, chunks: list[RetrievedChunk], limit: int | None = None
+    ) -> list[RetrievedChunk]:
         terms = set(re.findall(r"\w+", query.lower()))
         scored = []
-        for chunk in chunks:
+        for position, chunk in enumerate(chunks):
             overlap = len(terms.intersection(re.findall(r"\w+", chunk.content.lower())))
-            scored.append((chunk.score + min(overlap / 20, 0.25), chunk))
+            scored.append((chunk.score + min(overlap / 20, 0.25), position, chunk))
         return [
-            item[1]
-            for item in sorted(scored, key=lambda item: item[0], reverse=True)[
-                : settings.rerank_top_k
+            item[2]
+            for item in sorted(scored, key=lambda item: (-item[0], item[1]))[
+                : limit or settings.rerank_top_k
             ]
         ]
 

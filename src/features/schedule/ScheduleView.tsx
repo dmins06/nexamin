@@ -5,9 +5,9 @@ import type { StudyTask } from '../../types'
 
 interface ScheduleViewProps {
   tasks: StudyTask[]
-  onAddTask: (task: StudyTask) => void
-  onToggleTask: (id: string) => void
-  onDeleteTask: (id: string) => void
+  onAddTask: (task: StudyTask) => Promise<void>
+  onToggleTask: (id: string) => void | Promise<void>
+  onDeleteTask: (id: string) => Promise<void>
   onOpenCourses: () => void
 }
 
@@ -40,6 +40,7 @@ export function ScheduleView({
   const [courses, setCourses] = useState<Course[]>([])
   const [loadingCourses, setLoadingCourses] = useState(true)
   const [courseError, setCourseError] = useState('')
+  const [actionError, setActionError] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
@@ -60,7 +61,7 @@ export function ScheduleView({
     [selectedDate, tasks],
   )
 
-  function addTask(event: FormEvent<HTMLFormElement>) {
+  async function addTask(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget
     const data = new FormData(form)
@@ -70,7 +71,8 @@ export function ScheduleView({
     if (!course) return
 
     setSaving(true)
-    onAddTask({
+    setActionError('')
+    const task: StudyTask = {
       id: crypto.randomUUID(),
       courseId: course.id,
       course: course.name,
@@ -80,11 +82,15 @@ export function ScheduleView({
       scheduledTime: String(data.get('scheduledTime')),
       tone: tones[Math.max(0, courseIndex) % tones.length] ?? 'green',
       completed: false,
-    })
-    setSelectedDate(String(data.get('scheduledDate')))
-    form.reset()
-    setSaving(false)
-    setFormOpen(false)
+    }
+    setSelectedDate(task.scheduledDate)
+    try {
+      await onAddTask(task)
+      form.reset()
+      setFormOpen(false)
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : 'Không thể lưu lịch học.')
+    } finally { setSaving(false) }
   }
 
   return (
@@ -119,7 +125,7 @@ export function ScheduleView({
         <strong>{readableDate(selectedDate)}</strong>
       </div>
 
-      {courseError && <p className="inline-error" role="alert">{courseError}</p>}
+      {(courseError || actionError) && <p className="inline-error" role="alert">{courseError || actionError}</p>}
 
       {!loadingCourses && courses.length === 0 && (
         <div className="schedule-course-notice">
@@ -180,7 +186,7 @@ export function ScheduleView({
               {confirmingId === task.id ? (
                 <div className="delete-confirm">
                   <span>Xóa buổi này?</span>
-                  <button type="button" onClick={() => onDeleteTask(task.id)}>Xóa</button>
+                  <button type="button" onClick={() => void onDeleteTask(task.id).then(() => setConfirmingId(null)).catch((reason: unknown) => setActionError(reason instanceof Error ? reason.message : 'Không thể xóa lịch học.'))}>Xóa</button>
                   <button type="button" onClick={() => setConfirmingId(null)}>Giữ lại</button>
                 </div>
               ) : (

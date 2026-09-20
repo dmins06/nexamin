@@ -1,9 +1,13 @@
-import { ArrowRight, BookOpen, Eye, EyeOff, Leaf, LockKeyhole, Mail, UserRound } from 'lucide-react'
-import { type FormEvent, type ReactNode, useState } from 'react'
+import { ArrowRight, BrainCircuit, Eye, EyeOff, LockKeyhole, Mail, Orbit, UserRound } from 'lucide-react'
+import { BrandLogo } from '../../components/BrandLogo'
+import { AmbientOrbit } from '../../components/AmbientOrbit'
+import { MobileSplash } from '../../components/MobileSplash'
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
 import { getSession, login, register, type University } from '../../lib/api'
 import { UniversityPicker } from './UniversityPicker'
 import { MajorPicker } from './MajorPicker'
 import type { MajorOption } from '../../lib/majorCatalog'
+import { workspaceApi } from '../../lib/workspaceApi'
 
 type Mode = 'login' | 'register'
 
@@ -15,6 +19,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState('')
   const [university, setUniversity] = useState<University | null>(null)
   const [major, setMajor] = useState<MajorOption | null>(null)
+
+  useEffect(() => {
+    const sync = () => setAuthenticated(getSession() !== null)
+    window.addEventListener('studyhub:auth-changed', sync)
+    if (getSession()) void workspaceApi.profile().catch(() => setAuthenticated(false))
+    return () => window.removeEventListener('studyhub:auth-changed', sync)
+  }, [])
 
   if (authenticated) return <>{children}</>
 
@@ -56,15 +67,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
   return (
     <main className="auth-page">
-      <section className="auth-story" aria-label="Giới thiệu StudyHub AI">
-        <div className="auth-brand"><span className="brand-mark" aria-hidden="true"><span /><span /><span /></span><span className="brand-name">StudyHub <span>AI</span></span></div>
+      <MobileSplash />
+      <section className="auth-story" aria-label="Giới thiệu StudyHubAI">
+        <div className="auth-brand"><span className="brand-logo"><BrandLogo /></span><span className="brand-name">StudyHub<span>AI</span></span></div>
         <div className="auth-story-copy">
-          <p className="folio">Không gian học tập cá nhân</p>
-          <h1>Học có nhịp.<br />Tiến bộ có dấu vết.</h1>
-          <p>Gom lịch học, tài liệu và trợ lý AI vào một nơi yên tĩnh để bạn tập trung vào điều quan trọng nhất.</p>
-          <div className="auth-proof"><Leaf size={19} /><span><strong>426 cơ sở đào tạo</strong><small>Đồng bộ từ Cổng tuyển sinh Bộ GD&ĐT</small></span></div>
+          <p className="folio">LEARN · PLAN · GROW</p>
+          <h1>Một không gian học tập dành riêng cho bạn.</h1>
+          <p>Lên lịch, quản lý tài liệu và hỏi EminAI trong cùng một hành trình liền mạch.</p>
+          <div className="auth-proof"><BrainCircuit size={19} /><span><strong>Cá nhân hóa theo trường và ngành</strong><small>Dữ liệu thật, kế hoạch của chính bạn</small></span></div>
         </div>
-        <div className="auth-quote"><BookOpen size={18} /><p>“Mỗi buổi học là một trang mới trong hành trình của bạn.”</p></div>
+        <div className="auth-orbit"><AmbientOrbit /></div><div className="auth-quote"><Orbit size={18} /><p>Lịch học, tài liệu và AI cùng chuyển động quanh mục tiêu của bạn.</p></div>
       </section>
 
       <section className="auth-panel">

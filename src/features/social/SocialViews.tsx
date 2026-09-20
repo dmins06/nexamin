@@ -140,6 +140,19 @@ export function CommunityView({ ownId, onMessagesRead }: { ownId: string | undef
     workspaceApi.messages(selected.id).then((items) => { setMessages(items); onMessagesRead() }).catch(() => setMessages([]))
   }, [selected, onMessagesRead])
 
+  useEffect(() => {
+    const receive = (raw: Event) => {
+      const message = (raw as CustomEvent<DirectMessage>).detail
+      if (!selected || (message.sender_id !== selected.id && message.recipient_id !== selected.id)) return
+      setMessages((items) => items.some((item) => item.id === message.id) ? items : [...items, message])
+      if (message.sender_id === selected.id) {
+        void workspaceApi.messages(selected.id).then((items) => { setMessages(items); onMessagesRead() })
+      }
+    }
+    window.addEventListener('studyhub:message', receive)
+    return () => window.removeEventListener('studyhub:message', receive)
+  }, [selected, onMessagesRead])
+
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     await reload(String(new FormData(event.currentTarget).get('query') ?? ''))

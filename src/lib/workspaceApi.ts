@@ -73,6 +73,23 @@ export interface DirectMessage {
   read_at: string | null
 }
 
+export interface CalendarEvent {
+  id: string
+  course_id: string | null
+  title: string
+  description: string | null
+  start_at: string
+  end_at: string
+  event_type: string
+  recurrence: Record<string, unknown> | null
+  created_at: string
+}
+
+export interface RealtimeMessageEvent {
+  type: 'message.new'
+  message: DirectMessage
+}
+
 export interface TutorReply {
   answer: string
   conversation_id: string
@@ -97,7 +114,9 @@ function messageFrom(body: unknown) {
   return data.error?.message ?? data.detail ?? 'Yêu cầu chưa thể hoàn tất.'
 }
 
-async function refreshAccess(): Promise<TokenPair | null> {
+let refreshInFlight: Promise<TokenPair | null> | null = null
+
+async function performRefresh(): Promise<TokenPair | null> {
   const session = getSession()
   if (!session) return null
   const response = await fetch(`${API_BASE}/auth/refresh`, {
@@ -112,6 +131,13 @@ async function refreshAccess(): Promise<TokenPair | null> {
   const next = (await response.json()) as TokenPair
   setSession(next)
   return next
+}
+
+function refreshAccess(): Promise<TokenPair | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = performRefresh().finally(() => { refreshInFlight = null })
+  }
+  return refreshInFlight
 }
 
 async function authorized<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
@@ -172,4 +198,27 @@ export const workspaceApi = {
   messages: (userId: string) => authorized<DirectMessage[]>(`/social/messages/${userId}`),
   unreadMessages: () => authorized<{ total: number; by_sender: Record<string, number> }>("/social/messages/unread"),
   sendMessage: (userId: string, content: string) => authorized<DirectMessage>(`/social/messages/${userId}`, { method: 'POST', body: JSON.stringify({ content }) }),
+  calendar: () => authorized<CalendarEvent[]>('/calendar'),
+  createCalendarEvent: (payload: Omit<CalendarEvent, 'id' | 'created_at'>) =>
+    authorized<CalendarEvent>('/calendar/events', { method: 'POST', body: JSON.stringify(payload) }),
+  updateCalendarEvent: (id: string, payload: Omit<CalendarEvent, 'id' | 'created_at'>) =>
+    authorized<CalendarEvent>(`/calendar/events/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteCalendarEvent: (id: string) => authorized<void>(`/calendar/events/${id}`, { method: 'DELETE' }),
+  realtime: (onEvent: (event: RealtimeMessageEvent) => void) => {
+    const session = getSession()
+    if (!session || typeof WebSocket === 'undefined') return null
+    const url = new URL(`${API_BASE}/social/ws`, window.location.origin)
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+    url.searchParams.set('token', session.access_token)
+    const socket = new WebSocket(url)
+    socket.addEventListener('message', (message) => {
+      try {
+        const event = JSON.parse(String(message.data)) as RealtimeMessageEvent
+        if (event.type === 'message.new' && event.message) onEvent(event)
+      } catch {
+        // Persisted messages remain available through the API fallback.
+      }
+    })
+    return socket
+  },
 }

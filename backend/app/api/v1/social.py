@@ -1,8 +1,14 @@
 import uuid
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Query, Response, WebSocket, WebSocketDisconnect, status
+from sqlalchemy import select
 
+from app.core.exceptions import AppError
+from app.core.security import decode_access_token
+from app.database import SessionFactory
 from app.dependencies import CurrentUser, DBSession
+from app.models import User
+from app.realtime import realtime_hub
 from app.schemas.social import (
     DirectMessageResponse,
     FriendshipResponse,
@@ -85,4 +91,35 @@ async def send_message(
     session: DBSession,
     user: CurrentUser,
 ) -> DirectMessageResponse:
-    return await SocialService(session, user).send_message(user_id, payload.content)
+    message = await SocialService(session, user).send_message(user_id, payload.content)
+    await realtime_hub.publish(
+        user_id,
+        {"type": "message.new", "message": message.model_dump(mode="json")},
+    )
+    return message
+
+
+@router.websocket("/ws")
+async def realtime_events(websocket: WebSocket, token: str = Query(min_length=20)) -> None:
+    try:
+        payload = decode_access_token(token)
+        user_id = uuid.UUID(payload["sub"])
+        async with SessionFactory() as session:
+            user = await session.scalar(
+                select(User.id).where(User.id == user_id, User.is_active.is_(True))
+            )
+        if user is None:
+            await websocket.close(code=4401)
+            return
+    except (AppError, TypeError, ValueError, KeyError):
+        await websocket.close(code=4401)
+        return
+
+    await realtime_hub.connect(user_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await realtime_hub.disconnect(user_id, websocket)

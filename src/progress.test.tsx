@@ -19,7 +19,7 @@ describe('Study progress', () => {
       ],
     }))
     render(<App />)
-    const progressButton = screen.getAllByRole('button', { name: 'Tiến độ' }).at(0)
+    const progressButton = screen.getByRole('button', { name: 'Xem tiến độ' })
     if (!progressButton) throw new Error('Progress navigation is missing')
     await user.click(progressButton)
     expect(screen.getByText('50%', { selector: '.big-number' })).toBeInTheDocument()

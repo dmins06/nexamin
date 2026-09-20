@@ -1,0 +1,22 @@
+@media (min-width: 1281px) {
+  .app-shell { grid-template-columns: 236px minmax(0, 1fr) 286px; }
+  .main-content { grid-column: 2; }
+}
+.right-rail {
+  grid-column: 3; position: sticky; top: 0; height: 100vh; padding: 30px 22px; overflow: auto;
+  background: rgba(8,13,24,.78); border-left: 1px solid var(--border); backdrop-filter: blur(22px);
+}
+.rail-heading p { margin: 0 0 6px; color: #68758d; font-size: 9px; font-weight: 800; letter-spacing: .15em; }
+.rail-heading h2 { margin: 0; font: 600 25px var(--font-display); }
+.rail-progress { margin: 27px 0; padding: 17px; display: flex; align-items: center; gap: 14px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,.025); }
+.progress-ring { width: 58px; height: 58px; flex: 0 0 auto; padding: 5px; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--progress) * 3.6deg),rgba(255,255,255,.07) 0); }
+.progress-ring::before { content: ''; grid-area: 1/1; width: 100%; height: 100%; border-radius: 50%; background: var(--surface); }
+.progress-ring span { z-index: 1; grid-area: 1/1; font: 700 12px var(--font-display); }
+.rail-progress strong { font-size: 13px; }.rail-progress p { margin: 4px 0 0; color: var(--text-muted); font-size: 10px; }
+.rail-card { position: relative; margin-top: 15px; padding: 20px; overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: linear-gradient(145deg,rgba(124,108,255,.13),rgba(54,216,255,.025)); }
+.rail-card > p { margin: 0 0 14px; color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.rail-card h3 { margin: 0; font: 600 17px/1.35 var(--font-display); }.rail-card > span:not(.rail-icon) { color: var(--text-muted); font-size: 11px; }
+.rail-card button { width: 100%; margin-top: 18px; padding: 10px 0 0; border: 0; border-top: 1px solid var(--border); background: transparent; color: #cfcaff; display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 700; cursor: pointer; }
+.rail-icon { width: 34px; height: 34px; margin-bottom: 20px; display: grid; place-items: center; border-radius: 11px; background: rgba(124,108,255,.2); color: var(--accent); }
+.rail-upcoming { background: rgba(255,255,255,.02); }.rail-upcoming h3 { margin-bottom: 6px; }
+@media (max-width: 1280px) { .right-rail { display: none; } }

@@ -24,7 +24,7 @@ class AuthService:
     async def register(self, payload: UserCreate) -> User:
         email = payload.email.lower()
         if await self.session.scalar(select(User.id).where(User.email == email)):
-            raise AppError("EMAIL_EXISTS", "An account with this email already exists", 409)
+            raise AppError("EMAIL_EXISTS", "Email này đã được sử dụng", 409)
         if (
             payload.university_id is not None
             and await self.session.get(University, payload.university_id) is None
@@ -54,9 +54,9 @@ class AuthService:
             or user.password_hash is None
             or not verify_password(payload.password, user.password_hash)
         ):
-            raise AppError("INVALID_CREDENTIALS", "Invalid email or password", 401)
+            raise AppError("INVALID_CREDENTIALS", "Email hoặc mật khẩu không đúng", 401)
         if not user.is_active:
-            raise AppError("ACCOUNT_DISABLED", "Account is disabled", 403)
+            raise AppError("ACCOUNT_DISABLED", "Tài khoản đã bị vô hiệu hóa", 403)
         return await self._issue_pair(user)
 
     async def refresh(self, raw_token: str) -> TokenPair:

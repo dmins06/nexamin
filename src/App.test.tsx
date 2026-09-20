@@ -29,7 +29,7 @@ describe('StudyHubAI dashboard', () => {
     }))
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: 'Tiếp tục nhịp học' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /Học thông minh hơn/ })).toBeInTheDocument()
     const task = screen.getByRole('button', {
       name: 'Hoàn thành: Ôn bài do người dùng tạo',
     })
@@ -38,15 +38,10 @@ describe('StudyHubAI dashboard', () => {
     expect(window.localStorage.getItem('studyhub-ai:state:v2')).toContain('"completed":true')
   })
 
-  it('navigates to focus view and starts a session', async () => {
+  it('opens the schedule from the primary hero action', async () => {
     const user = userEvent.setup()
     render(<App />)
-
-    const focusButton = screen.getAllByRole('button', { name: 'Tập trung' }).at(0)
-    if (!focusButton) throw new Error('Focus navigation is missing')
-    await user.click(focusButton)
-    expect(screen.getByRole('heading', { name: 'Một việc, trọn một nhịp' })).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Bắt đầu phiên' }))
-    expect(screen.getByRole('button', { name: 'Tạm dừng' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Bắt đầu ngay/ }))
+    expect(screen.getByRole('heading', { name: 'Lịch học của bạn' })).toBeInTheDocument()
   })
 })

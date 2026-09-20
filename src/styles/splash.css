@@ -1,0 +1,16 @@
+@media (max-width: 760px) {
+  .app-shell::after, .auth-page::after {
+    content: 'StudyHubAI';
+    position: fixed; z-index: 100; inset: 0; display: grid; place-items: center;
+    background: radial-gradient(circle at 50% 42%,rgba(124,108,255,.24),transparent 16rem),#070b14;
+    color: #f5f7ff; font: 700 25px var(--font-display); letter-spacing: -.04em;
+    pointer-events: none; animation: splash-away 1.15s cubic-bezier(.7,0,.3,1) both;
+  }
+  @keyframes splash-away {
+    0%,58% { opacity: 1; clip-path: inset(0); }
+    100% { opacity: 0; clip-path: inset(0 0 100% 0); visibility: hidden; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell::after, .auth-page::after { display: none; }
+}

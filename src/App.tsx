@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import {
-  BarChart3,
-  BookOpen,
   CalendarDays,
   Check,
   ChevronRight,
@@ -11,19 +9,20 @@ import {
   Files,
   GraduationCap,
   LogOut,
-  Pause,
-  Play,
-  RotateCcw,
+  Settings,
+  Menu,
+  X,
   Sparkles,
-  Target,
-  TimerReset,
   Users,
   UserRound,
 } from 'lucide-react'
 import { initialStudyState } from './data'
-import { formatTime, formatVietnameseDate } from './lib/format'
+import { formatVietnameseDate } from './lib/format'
+import { BrandLogo } from './components/BrandLogo'
+import { AmbientOrbit } from './components/AmbientOrbit'
+import { MobileSplash } from './components/MobileSplash'
 import { logout } from './lib/api'
-import { type UserProfile, workspaceApi } from './lib/workspaceApi'
+import { type CalendarEvent, type UserProfile, workspaceApi } from './lib/workspaceApi'
 import { CoursesView, LibraryView, TutorView } from './features/workspace/WorkspaceViews'
 import { ScheduleView } from './features/schedule/ScheduleView'
 import { CommunityView, ProfileView } from './features/social/SocialViews'
@@ -31,32 +30,82 @@ import { loadStudyState, saveStudyState } from './lib/storage'
 import type { StudyState, StudyTask, ViewId } from './types'
 
 const navItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
-  { id: 'overview', label: 'Tổng quan', icon: Home },
+  { id: 'overview', label: 'Trang chủ', icon: Home },
   { id: 'courses', label: 'Môn học', icon: GraduationCap },
-  { id: 'library', label: 'Tài liệu', icon: Files },
-  { id: 'tutor', label: 'Emin AI', icon: Bot },
   { id: 'schedule', label: 'Lịch học', icon: CalendarDays },
-  { id: 'focus', label: 'Tập trung', icon: TimerReset },
-  { id: 'progress', label: 'Tiến độ', icon: BarChart3 },
-  { id: 'community', label: 'Bạn học', icon: Users },
+  { id: 'tutor', label: 'EminAI', icon: Bot },
+  { id: 'library', label: 'Tài liệu', icon: Files },
+  { id: 'community', label: 'Cộng đồng', icon: Users },
 ]
 
 const mobileNavItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
-  ...navItems,
+  { id: 'overview', label: 'Trang chủ', icon: Home },
+  { id: 'courses', label: 'Môn học', icon: GraduationCap },
+  { id: 'tutor', label: 'EminAI', icon: Bot },
+  { id: 'community', label: 'Thông báo', icon: Users },
   { id: 'profile', label: 'Hồ sơ', icon: UserRound },
 ]
+
+
+function eventToTask(event: CalendarEvent): StudyTask | null {
+  if (!event.event_type.startsWith('study_session')) return null
+  let metadata: { course?: string; tone?: StudyTask['tone'] } = {}
+  try { metadata = event.description ? JSON.parse(event.description) as typeof metadata : {} } catch { metadata = {} }
+  const start = new Date(event.start_at)
+  const end = new Date(event.end_at)
+  const local = new Date(start.getTime() - start.getTimezoneOffset() * 60_000)
+  return {
+    id: event.id,
+    courseId: event.course_id ?? '',
+    course: metadata.course ?? 'Môn học',
+    title: event.title,
+    duration: Math.max(5, Math.round((end.getTime() - start.getTime()) / 60_000)),
+    scheduledDate: local.toISOString().slice(0, 10),
+    scheduledTime: local.toISOString().slice(11, 16),
+    tone: metadata.tone ?? 'green',
+    completed: event.event_type === 'study_session_completed',
+  }
+}
+
+function taskToEvent(task: StudyTask): Omit<CalendarEvent, 'id' | 'created_at'> {
+  const start = new Date(`${task.scheduledDate}T${task.scheduledTime}:00`)
+  const end = new Date(start.getTime() + task.duration * 60_000)
+  return {
+    course_id: task.courseId || null,
+    title: task.title,
+    description: JSON.stringify({ course: task.course, tone: task.tone }),
+    start_at: start.toISOString(),
+    end_at: end.toISOString(),
+    event_type: task.completed ? 'study_session_completed' : 'study_session',
+    recurrence: null,
+  }
+}
 
 function App() {
   const [view, setView] = useState<ViewId>('overview')
   const [study, setStudy] = useState<StudyState>(() =>
     loadStudyState(initialStudyState),
   )
-  const [timerRunning, setTimerRunning] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const initialTasks = useRef(study.tasks)
 
   useEffect(() => saveStudyState(study), [study])
   useEffect(() => { void workspaceApi.profile().then(setProfile).catch(() => undefined) }, [])
+  useEffect(() => {
+    const localTasks = initialTasks.current
+    void workspaceApi.calendar().then(async (events) => {
+      const serverTasks = events.map(eventToTask).filter((task): task is StudyTask => task !== null)
+      if (serverTasks.length || localTasks.length === 0) {
+        setStudy((current) => ({ ...current, tasks: serverTasks }))
+        return
+      }
+      const migrated = await Promise.all(localTasks.map(async (task) => eventToTask(
+        await workspaceApi.createCalendarEvent(taskToEvent(task)),
+      )))
+      setStudy((current) => ({ ...current, tasks: migrated.filter((task): task is StudyTask => task !== null) }))
+    }).catch(() => undefined)
+  }, []) // Migrate version-2 local schedules once when the server calendar is empty.
   const refreshUnread = useCallback(() => {
     void workspaceApi.unreadMessages().then((summary) => setUnreadMessages(summary.total)).catch(() => undefined)
   }, [])
@@ -69,60 +118,61 @@ function App() {
   }, [refreshUnread])
 
   useEffect(() => {
-    if (!timerRunning) return
-    const timer = window.setInterval(() => {
-      setStudy((current) => {
-        if (current.focusSeconds <= 1) {
-          setTimerRunning(false)
-          return {
-            ...current,
-            focusSeconds: 25 * 60,
-            completedSessions: current.completedSessions + 1,
-          }
-        }
-        return { ...current, focusSeconds: current.focusSeconds - 1 }
+    let stopped = false
+    let socket: WebSocket | null = null
+    let reconnect: number | undefined
+    const connect = () => {
+      socket = workspaceApi.realtime((event) => {
+        refreshUnread()
+        window.dispatchEvent(new CustomEvent('studyhub:message', { detail: event.message }))
       })
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [timerRunning])
+      socket?.addEventListener('close', () => {
+        if (!stopped) reconnect = window.setTimeout(connect, 2500)
+      })
+    }
+    connect()
+    return () => { stopped = true; if (reconnect) window.clearTimeout(reconnect); socket?.close() }
+  }, [refreshUnread])
 
-  const toggleTask = (taskId: string) => {
-    setStudy((current) => ({
-      ...current,
-      tasks: current.tasks.map((task) =>
-        task.id === taskId ? { ...task, completed: !task.completed } : task,
-      ),
-    }))
+
+  const toggleTask = async (taskId: string) => {
+    const task = study.tasks.find((item) => item.id === taskId)
+    if (!task) return
+    const next = { ...task, completed: !task.completed }
+    setStudy((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === taskId ? next : item) }))
+    try { await workspaceApi.updateCalendarEvent(taskId, taskToEvent(next)) } catch { /* Local legacy task: keep it usable. */ }
   }
 
-  const addTask = (task: StudyTask) => {
+  const addTask = async (task: StudyTask) => {
     setStudy((current) => ({ ...current, tasks: [...current.tasks, task] }))
+    try {
+      const event = await workspaceApi.createCalendarEvent(taskToEvent(task))
+      const saved = eventToTask(event)
+      if (saved) setStudy((current) => ({ ...current, tasks: current.tasks.map((item) => item.id === task.id ? saved : item) }))
+    } catch (reason) {
+      setStudy((current) => ({ ...current, tasks: current.tasks.filter((item) => item.id !== task.id) }))
+      throw reason
+    }
   }
 
-  const deleteTask = (taskId: string) => {
-    setStudy((current) => ({
-      ...current,
-      tasks: current.tasks.filter((task) => task.id !== taskId),
-    }))
+  const deleteTask = async (taskId: string) => {
+    const removed = study.tasks.find((task) => task.id === taskId)
+    setStudy((current) => ({ ...current, tasks: current.tasks.filter((task) => task.id !== taskId) }))
+    try { await workspaceApi.deleteCalendarEvent(taskId) }
+    catch (reason) { if (removed) setStudy((current) => ({ ...current, tasks: [...current.tasks, removed] })); throw reason }
   }
 
-  const resetTimer = () => {
-    setTimerRunning(false)
-    setStudy((current) => ({ ...current, focusSeconds: 25 * 60 }))
-  }
 
   return (
     <div className="app-shell">
+      <MobileSplash />
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
       <Sidebar active={view} onNavigate={setView} profile={profile} unreadMessages={unreadMessages} />
       <main className="main-content" id="main-content">
-        <Header profile={profile} sessions={study.completedSessions} />
+        <Header profile={profile} onNavigate={setView} />
         {view === 'overview' && (
           <Overview
             study={study}
-            timerRunning={timerRunning}
-            onToggleTimer={() => setTimerRunning((value) => !value)}
-            onResetTimer={resetTimer}
             onToggleTask={toggleTask}
             onNavigate={setView}
           />
@@ -139,19 +189,11 @@ function App() {
             onOpenCourses={() => setView('courses')}
           />
         )}
-        {view === 'focus' && (
-          <FocusView
-            seconds={study.focusSeconds}
-            running={timerRunning}
-            sessions={study.completedSessions}
-            onToggle={() => setTimerRunning((value) => !value)}
-            onReset={resetTimer}
-          />
-        )}
         {view === 'progress' && <ProgressView study={study} />}
         {view === 'community' && <CommunityView ownId={profile?.id} onMessagesRead={refreshUnread} />}
         {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
       </main>
+      <RightRail study={study} profile={profile} onNavigate={setView} />
       <MobileNav active={view} onNavigate={setView} unreadMessages={unreadMessages} />
     </div>
   )
@@ -165,11 +207,7 @@ interface NavigationProps {
 function Brand() {
   return (
     <div className="brand" aria-label="StudyHubAI">
-      <span className="brand-mark" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
+<span className="brand-logo"><BrandLogo /></span>
       <span className="brand-name">StudyHub<span>AI</span></span>
     </div>
   )
@@ -204,7 +242,7 @@ function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProp
       </div>
       <div className="student-chip">
         <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
-        <button className="logout-button" aria-label="Đăng xuất" title="Đăng xuất" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={16} /></button>
+        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('profile')}><Settings size={16} /></button><button className="logout-button" aria-label="Đăng xuất" title="Đăng xuất" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={16} /></button>
       </div>
     </aside>
   )
@@ -233,48 +271,51 @@ function MobileNav({ active, onNavigate, unreadMessages }: NavigationProps & { u
   )
 }
 
-function Header({ profile, sessions }: { profile: UserProfile | null; sessions: number }) {
-  const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? "bạn"
-  return (
-    <header className="topbar">
-      <div>
-        <p className="today">{formatVietnameseDate()}</p>
-        <h1>Chào buổi sáng, {firstName}</h1>
-      </div>
-      <div className="day-pulse" aria-label={`${sessions} phiên tập trung đã hoàn thành`}>
-        <span className="pulse-leaf" aria-hidden="true" />
-        <span><strong>{sessions} phiên</strong><small>đã hoàn thành</small></span>
-      </div>
-    </header>
-  )
+function RightRail({ study, profile, onNavigate }: { study: StudyState; profile: UserProfile | null; onNavigate: (view: ViewId) => void }) {
+  const done = study.tasks.filter((task) => task.completed).length
+  const completion = study.tasks.length ? Math.round(done / study.tasks.length * 100) : 0
+  const next = [...study.tasks].filter((task) => !task.completed).sort((a, b) => (a.scheduledDate + a.scheduledTime).localeCompare(b.scheduledDate + b.scheduledTime))[0]
+  return <aside className="right-rail" aria-label="Tổng quan học tập">
+    <div className="rail-heading"><p>ĐỒNG HÀNH CÙNG</p><h2>{profile?.full_name?.split(/\s+/).at(-1) ?? 'bạn'}</h2></div>
+    <section className="rail-progress"><div className="progress-ring" style={{ '--progress': completion } as CSSProperties}><span>{completion}%</span></div><div><strong>Tiến độ</strong><p>{done}/{study.tasks.length} việc hoàn thành</p></div></section>
+    <section className="rail-card"><span className="rail-icon"><Sparkles size={18} /></span><p>EminAI</p><h3>Cần giải thích một khái niệm?</h3><button onClick={() => onNavigate('tutor')}>Hỏi EminAI <ChevronRight size={15} /></button></section>
+    <section className="rail-card rail-upcoming"><p>Sắp tới</p>{next ? <><h3>{next.title}</h3><span>{next.scheduledDate} · {next.scheduledTime}</span></> : <span>Chưa có lịch sắp tới</span>}<button onClick={() => onNavigate('progress')}>Xem tiến độ <ChevronRight size={15} /></button></section>
+  </aside>
+}
+
+function Header({ profile, onNavigate }: { profile: UserProfile | null; onNavigate: (view: ViewId) => void }) {
+  const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? 'bạn'
+  return <header className="topbar">
+    <div className="mobile-brand"><Brand /></div>
+    <div className="topbar-copy"><p className="today">{formatVietnameseDate()}</p><h1>Chào bạn, {firstName}</h1></div>
+    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => onNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => onNavigate('library')}><Files size={17} />Tài liệu</button><button onClick={() => onNavigate('progress')}><Sparkles size={17} />Tiến độ</button><button onClick={() => onNavigate('community')}><Users size={17} />Cộng đồng</button></div></details>
+    <div className="header-signal" aria-hidden="true"><span /><span /></div>
+  </header>
 }
 
 interface OverviewProps {
   study: StudyState
-  timerRunning: boolean
-  onToggleTimer: () => void
-  onResetTimer: () => void
   onToggleTask: (id: string) => void
   onNavigate: (view: ViewId) => void
 }
 
-function Overview({ study, timerRunning, onToggleTimer, onResetTimer, onToggleTask, onNavigate }: OverviewProps) {
+function Overview({ study, onToggleTask, onNavigate }: OverviewProps) {
   const now = new Date()
   const localToday = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
   const todayTasks = study.tasks.filter((task) => task.scheduledDate === localToday)
   const completed = todayTasks.filter((task) => task.completed).length
-  const upcoming = [...study.tasks].filter((task) => !task.completed).sort((first, second) => `${first.scheduledDate}T${first.scheduledTime}`.localeCompare(`${second.scheduledDate}T${second.scheduledTime}`))[0]
   return <div className="view-stack">
-    <section className="study-spread" aria-labelledby="continue-title">
-      <div className="focus-specimen">
-        <div className="section-heading"><div><h2 id="continue-title">Tiếp tục nhịp học</h2><p>{upcoming ? 'Buổi gần nhất trong lịch của bạn' : 'Bắt đầu bằng một kế hoạch vừa sức'}</p></div>{upcoming && <span className="course-code">{upcoming.scheduledDate} · {upcoming.scheduledTime}</span>}</div>
-        <div className="specimen-body">
-          {upcoming ? <div className="course-copy"><span className="subject-mark" aria-hidden="true" /><h3>{upcoming.course}</h3><p className="lesson">{upcoming.title}</p><p className="objective">Buổi học {upcoming.duration} phút do bạn lên lịch.</p><div className="course-meta"><span><BookOpen size={16} /> {upcoming.scheduledDate}</span><span><Target size={16} /> {upcoming.scheduledTime}</span></div></div> :
-            <div className="course-copy empty-plan"><CalendarDays size={26} /><h3>Chưa có lịch học</h3><p className="objective">Thêm môn học và xếp buổi đầu tiên để StudyHubAI đồng hành cùng bạn.</p><button className="secondary-action" type="button" onClick={() => onNavigate('schedule')}>Mở lịch học</button></div>}
-          <MiniTimer seconds={study.focusSeconds} running={timerRunning} onToggle={onToggleTimer} onReset={onResetTimer} />
+    <section className="hero" aria-labelledby="hero-title">
+      <div className="hero-copy">
+        <p className="hero-kicker">LEARN · PLAN · GROW</p>
+        <h2 id="hero-title">Học thông minh hơn<br />cùng AI mỗi ngày.</h2>
+        <p className="hero-lead">Biến lịch học, tài liệu và mục tiêu thành một nhịp học rõ ràng — với EminAI luôn sẵn sàng hỗ trợ.</p>
+        <div className="hero-actions">
+          <button className="primary-action" type="button" onClick={() => onNavigate('schedule')}>Bắt đầu ngay <ChevronRight size={17} /></button>
+          <button className="secondary-action" type="button" onClick={() => onNavigate('tutor')}>Khám phá tính năng</button>
         </div>
       </div>
-      <WeekChart />
+      <AmbientOrbit />
     </section>
     <section className="task-ledger" aria-labelledby="today-title">
       <div className="section-heading ledger-heading"><div><h2 id="today-title">Hôm nay</h2><p>{completed}/{todayTasks.length} việc đã hoàn thành</p></div><button className="text-button" onClick={() => onNavigate('schedule')}>Xem lịch học <ChevronRight size={16} /></button></div>
@@ -286,50 +327,6 @@ function Overview({ study, timerRunning, onToggleTimer, onResetTimer, onToggleTa
   </div>
 }
 
-
-interface MiniTimerProps {
-  seconds: number
-  running: boolean
-  onToggle: () => void
-  onReset: () => void
-}
-
-function MiniTimer({ seconds, running, onToggle, onReset }: MiniTimerProps) {
-  return (
-    <div className={running ? 'mini-timer running' : 'mini-timer'}>
-      <span className="timer-leaf" aria-hidden="true" />
-      <span className="timer-value">{formatTime(seconds)}</span>
-      <span className="timer-label">Pomodoro · phiên sâu</span>
-      <div className="timer-actions">
-        <button className="primary-action" onClick={onToggle}>
-          {running ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" />}
-          {running ? 'Tạm dừng' : 'Bắt đầu tập trung'}
-        </button>
-        <button className="icon-button" onClick={onReset} aria-label="Đặt lại bộ đếm">
-          <RotateCcw size={18} />
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function WeekChart() {
-  return (
-    <section className="week-chart" aria-labelledby="week-title">
-      <div className="section-heading">
-        <div>
-          <h2 id="week-title">Nhịp học tuần này</h2>
-          <p>Chưa có phiên nào được ghi nhận</p>
-        </div>
-      </div>
-      <div className="chart-empty">
-        <CalendarDays size={27} aria-hidden="true" />
-        <strong>Dữ liệu sẽ được tạo từ hoạt động của bạn</strong>
-        <p>Hoàn thành buổi học và phiên tập trung để xem nhịp học.</p>
-      </div>
-    </section>
-  )
-}
 
 interface TaskRowProps {
   task: StudyTask
@@ -361,35 +358,6 @@ function TaskRow({ task, index, onToggle }: TaskRowProps) {
   )
 }
 
-
-function FocusView({ seconds, running, sessions, onToggle, onReset }: { seconds: number; running: boolean; sessions: number; onToggle: () => void; onReset: () => void }) {
-  return (
-    <section className="page-view focus-page" aria-labelledby="focus-title">
-      <div className="page-intro">
-        <span className="folio">Phiên {sessions + 1}</span>
-        <h2 id="focus-title">Một việc, trọn một nhịp</h2>
-        <p>Tắt bớt tiếng ồn và dành trọn phiên này cho mục tiêu bạn đã chọn.</p>
-      </div>
-      <div className={running ? 'focus-clock active' : 'focus-clock'}>
-        <span className="focus-sprout" aria-hidden="true"><i /><i /><i /></span>
-        <time>{formatTime(seconds)}</time>
-        <p>{running ? 'Đang giữ nhịp tập trung' : 'Sẵn sàng khi bạn bắt đầu'}</p>
-        <div className="focus-controls">
-          <button className="primary-action" onClick={onToggle}>
-            {running ? <Pause size={20} /> : <Play size={20} fill="currentColor" />}
-            {running ? 'Tạm dừng' : 'Bắt đầu phiên'}
-          </button>
-          <button className="secondary-action" onClick={onReset}><RotateCcw size={18} /> Đặt lại</button>
-        </div>
-      </div>
-      <div className="focus-footnotes">
-        <span><strong>{sessions}</strong> phiên đã hoàn thành hôm nay</span>
-        <span><strong>5 phút</strong> nghỉ sau phiên này</span>
-        <span><strong>1 mục tiêu</strong> cần ghi lại</span>
-      </div>
-    </section>
-  )
-}
 
 function ProgressView({ study }: { study: StudyState }) {
   const done = study.tasks.filter((task) => task.completed).length
