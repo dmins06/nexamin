@@ -2,13 +2,18 @@ import uuid
 
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile, status
 
-from app.core.storage import storage
+from app.config import settings
+from app.core.storage import StorageBackend, local_storage, storage
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import DocumentResponse, Page
 from app.services.documents import DocumentService
-from app.workers.document_tasks import process_document_task
+from app.workers.document_tasks import process_document, process_document_task
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+
+def document_storage() -> StorageBackend:
+    return local_storage if settings.storage_provider == "local" else storage
 
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_202_ACCEPTED)
@@ -18,8 +23,12 @@ async def upload_document(
     course_id: uuid.UUID = Form(),
     file: UploadFile = File(),
 ) -> DocumentResponse:
-    document = await DocumentService(session, user.id, storage).upload(course_id, file)
-    process_document_task.delay(str(document.id))
+    document = await DocumentService(session, user.id, document_storage()).upload(course_id, file)
+    if settings.storage_provider == "local":
+        await process_document(document.id)
+        await session.refresh(document)
+    else:
+        process_document_task.delay(str(document.id))
     return DocumentResponse.model_validate(document)
 
 
@@ -31,7 +40,9 @@ async def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> Page[DocumentResponse]:
-    items, total = await DocumentService(session, user.id, storage).list(page, page_size, course_id)
+    items, total = await DocumentService(session, user.id, document_storage()).list(
+        page, page_size, course_id
+    )
     return Page(
         items=[DocumentResponse.model_validate(row) for row in items],
         page=page,
@@ -45,7 +56,7 @@ async def get_document(
     document_id: uuid.UUID, session: DBSession, user: CurrentUser
 ) -> DocumentResponse:
     return DocumentResponse.model_validate(
-        await DocumentService(session, user.id, storage).get(document_id)
+        await DocumentService(session, user.id, document_storage()).get(document_id)
     )
 
 
@@ -53,5 +64,5 @@ async def get_document(
 async def delete_document(
     document_id: uuid.UUID, session: DBSession, user: CurrentUser
 ) -> Response:
-    await DocumentService(session, user.id, storage).delete(document_id)
+    await DocumentService(session, user.id, document_storage()).delete(document_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

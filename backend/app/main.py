@@ -2,10 +2,12 @@ import time
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
 from sqlalchemy import text
 
@@ -14,6 +16,7 @@ from app.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.rate_limit import RateLimitMiddleware
+from app.core.storage import MEDIA_ROOT
 from app.database import SessionFactory
 
 logger = configure_logging()
@@ -45,6 +48,11 @@ app.add_middleware(
 )
 register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+app.mount("/media", StaticFiles(directory=MEDIA_ROOT, check_dir=False), name="media")
+
+FRONTEND_ROOT = Path(__file__).resolve().parents[1] / "frontend"
+if FRONTEND_ROOT.is_dir():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_ROOT / "assets"), name="frontend-assets")
 
 
 @app.middleware("http")
@@ -78,3 +86,13 @@ async def ready(request: Request) -> JSONResponse:
         return JSONResponse({"status": "ready"})
     except Exception:
         return JSONResponse({"status": "not_ready"}, status_code=503)
+
+
+if FRONTEND_ROOT.is_dir():
+
+    @app.get("/{path:path}", include_in_schema=False)
+    async def frontend(path: str) -> FileResponse:
+        candidate = (FRONTEND_ROOT / path).resolve()
+        if FRONTEND_ROOT.resolve() in candidate.parents and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_ROOT / "index.html")

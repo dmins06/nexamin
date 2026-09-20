@@ -1,30 +1,27 @@
-# StudyHubAI Build Plan
+# StudyHubAI Completion Plan
 
 ## Goal
 
-Deliver a polished, responsive study dashboard that works entirely in the browser and demonstrates the core StudyHubAI learning workflow.
+Hoàn thiện nền tảng học tập responsive có xác thực, dữ liệu trường/ngành, lịch học, tiến độ, tài liệu, Emin AI, hồ sơ và kết nối bạn bè; kiểm thử và triển khai private repo lên server preview miễn phí.
 
-## Plan
+## Completed scope
 
-1. Establish product and visual direction.
-2. Scaffold React + TypeScript + Vite with linting and tests.
-3. Build the responsive application shell and navigation.
-4. Implement login, registration and searchable nationwide university selection.
-5. Implement dashboard overview, weekly plan, focus timer, task completion, and study streaks.
-6. Add local persistence, empty states, keyboard behavior, and reduced-motion support.
-7. Add automated tests and documentation.
-8. Run visual QA, lint, typecheck, tests, and production build; fix all failures.
+- [x] React + TypeScript + Vite và FastAPI + SQLAlchemy async.
+- [x] Đăng ký/đăng nhập JWT, mật khẩu tối thiểu 6 ký tự.
+- [x] 426 trường có ảnh cục bộ và 6.783 chương trình đào tạo theo trường.
+- [x] Môn học, lịch theo ngày, thêm/xóa/hoàn thành buổi học và tiến độ từ dữ liệu thật.
+- [x] Upload/xóa PDF, DOCX, PPTX, TXT; local storage và S3/MinIO.
+- [x] Emin AI trả lời ngay ở local và trích dẫn chunk tài liệu.
+- [x] Hồ sơ riêng, chỉnh sửa thông tin và ảnh đại diện; hồ sơ khách giới hạn trường/ngành/tên.
+- [x] Kết bạn, chấp nhận/từ chối, chat và thông báo chấm đỏ cho tin chưa đọc.
+- [x] Responsive 360–1600px, keyboard focus, empty/error/loading state.
+- [x] `.env.example`, Docker, Render Blueprint và tài liệu chạy/deploy.
+- [ ] Đẩy GitHub private và kích hoạt Render Blueprint (cần người dùng xác thực tài khoản ngoài).
 
 ## Definition of Done
 
-- Complete Vietnamese login, registration, university selection, school-specific major selection and study dashboard on desktop and mobile.
-- University catalog contains all 426 admissions institutions returned by the official MOET endpoint.
-- All 426 institutions display a local image asset; verified official favicons are preferred and a code seal is used only when no official image is published.
-- Registration offers the 6,783 public 2026 training programs available for 303 institutions and clearly handles institutions without a published list.
-- Task completion, focus timer, and primary navigation work.
-- User state survives reload through local storage.
-- Empty and completed states are intentional and readable.
-- `.env.example` contains no real secret.
-- README documents setup, scripts, architecture, and usage.
-- Lint, TypeScript, tests, and production build pass.
-- Desktop and mobile renders are inspected for overflow and accessibility issues.
+- Lint, TypeScript, Vitest, production build, Ruff, mypy và pytest đều pass.
+- E2E đăng ký/đăng nhập, upload, Emin AI, profile/avatar, chat/unread pass.
+- Không có secret hoặc `.env` thật trong Git.
+- Không tràn ngang trên viewport 360px và 1440px.
+- Có URL HTTPS public từ nền tảng free sau khi xác thực GitHub/Render.

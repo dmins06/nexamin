@@ -1,5 +1,4 @@
 import {
-  ArrowUp,
   BookOpen,
   Bot,
   CheckCircle2,
@@ -34,6 +33,8 @@ export function CoursesView() {
   const [creating, setCreating] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [formError, setFormError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   async function createCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -57,6 +58,20 @@ export function CoursesView() {
     }
   }
 
+  async function deleteCourse(course: Course) {
+    setDeletingId(course.id)
+    setFormError('')
+    try {
+      await workspaceApi.deleteCourse(course.id)
+      setConfirmingId(null)
+      reload()
+    } catch (reason) {
+      setFormError(reason instanceof Error ? reason.message : 'Không thể xóa môn học.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <section className="workspace-page" aria-labelledby="courses-title">
       <div className="workspace-heading">
@@ -71,9 +86,13 @@ export function CoursesView() {
         {formError && <p className="inline-error" role="alert">{formError}</p>}
         <button className="primary-action" type="submit" disabled={creating}>{creating ? <LoaderCircle className="spin" size={18} /> : <CheckCircle2 size={18} />}{creating ? 'Đang lưu…' : 'Lưu môn học'}</button>
       </form>}
-      {loading ? <LoadingState label="Đang mở sổ môn học…" /> : error ? <ErrorState message={error} onRetry={reload} /> : courses.length === 0 ? <EmptyState icon={<BookOpen />} title="Chưa có môn học" text="Tạo môn đầu tiên để tải tài liệu và bắt đầu hỏi trợ lý AI." /> :
+      {!formOpen && formError && <p className="inline-error" role="alert">{formError}</p>}
+      {loading ? <LoadingState label="Đang mở sổ môn học…" /> : error ? <ErrorState message={error} onRetry={reload} /> : courses.length === 0 ? <EmptyState icon={<BookOpen />} title="Chưa có môn học" text="Tạo môn đầu tiên để tải tài liệu và bắt đầu hỏi Emin AI." /> :
         <div className="course-grid">{courses.map((course) => <article className="course-tile" key={course.id} style={{ '--course-color': course.color ?? '#315c45' } as CSSProperties}>
-          <span className="course-swatch" aria-hidden="true" /><div><small>{course.code ?? 'MÔN HỌC'}</small><h3>{course.name}</h3><p>{course.description ?? 'Sẵn sàng để thêm tài liệu và chủ đề học.'}</p></div><footer><span>{course.semester ?? 'Chưa đặt học kỳ'}</span><ArrowUp size={17} aria-hidden="true" /></footer>
+          <span className="course-swatch" aria-hidden="true" /><div><small>{course.code ?? 'MÔN HỌC'}</small><h3>{course.name}</h3><p>{course.description ?? 'Sẵn sàng để thêm tài liệu và chủ đề học.'}</p></div><footer><span>{course.semester ?? 'Chưa đặt học kỳ'}</span>
+            {confirmingId === course.id ? <span className="course-delete-confirm"><button type="button" disabled={deletingId === course.id} onClick={() => void deleteCourse(course)}>{deletingId === course.id ? 'Đang xóa…' : 'Xóa môn'}</button><button type="button" onClick={() => setConfirmingId(null)}>Hủy</button></span> :
+              <button className="icon-button" type="button" onClick={() => setConfirmingId(course.id)} aria-label={`Xóa môn ${course.name}`}><Trash2 size={17} /></button>}
+          </footer>
         </article>)}</div>}
     </section>
   )
@@ -109,7 +128,7 @@ export function LibraryView() {
   }
 
   return <section className="workspace-page" aria-labelledby="library-title">
-    <div className="workspace-heading"><div><p>Kho kiến thức</p><h2 id="library-title">Tài liệu học tập</h2><span>PDF, DOCX và PPTX sẽ được xử lý để trợ lý AI có thể trích dẫn.</span></div></div>
+    <div className="workspace-heading"><div><p>Kho kiến thức</p><h2 id="library-title">Tài liệu học tập</h2><span>PDF, DOCX, PPTX và TXT sẽ được Emin AI xử lý để trích dẫn.</span></div></div>
     <form className="upload-strip" onSubmit={upload}>
       <UploadCloud size={25} /><label>Chọn môn<select value={courseId} onChange={(event) => setCourseId(event.target.value)} disabled={coursesLoading || courses.length === 0}><option value="">Chọn môn học</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label>
       <label>Tệp tài liệu<input ref={fileRef} type="file" required accept=".pdf,.docx,.pptx,text/plain" /></label>
@@ -128,7 +147,7 @@ export function TutorView() {
   const { courses, loading } = useCourses()
   const [courseId, setCourseId] = useState('')
   const [conversationId, setConversationId] = useState<string>()
-  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Chào bạn. Hãy chọn môn học và đặt câu hỏi; mình sẽ ưu tiên trả lời từ tài liệu bạn đã tải lên.' }])
+  const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Chào bạn, mình là Emin AI. Hãy chọn môn học và đặt câu hỏi; mình sẽ ưu tiên trả lời từ tài liệu bạn đã tải lên.' }])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   useEffect(() => { if (!courseId && courses[0]) setCourseId(courses[0].id) }, [courseId, courses])
@@ -144,12 +163,12 @@ export function TutorView() {
       const reply = await workspaceApi.chat({ course_id: courseId, conversation_id: conversationId, message: text })
       setConversationId(reply.conversation_id)
       setMessages((items) => [...items, { role: 'assistant', text: reply.answer, citations: reply.citations }])
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Trợ lý chưa thể trả lời.') }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Emin AI chưa thể trả lời.') }
     finally { setBusy(false) }
   }
 
   return <section className="workspace-page tutor-page" aria-labelledby="tutor-title">
-    <div className="workspace-heading"><div><p>Trợ lý có nguồn</p><h2 id="tutor-title">Hỏi tài liệu của bạn</h2><span>Câu trả lời đi kèm trích dẫn để bạn kiểm tra lại kiến thức.</span></div><label className="course-select">Ngữ cảnh<select value={courseId} onChange={(event) => { setCourseId(event.target.value); setConversationId(undefined) }} disabled={loading}><option value="">Chọn môn học</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label></div>
+    <div className="workspace-heading"><div><p>Emin AI có nguồn</p><h2 id="tutor-title">Hỏi Emin AI về tài liệu</h2><span>Câu trả lời đi kèm trích dẫn để bạn kiểm tra lại kiến thức.</span></div><label className="course-select">Ngữ cảnh<select value={courseId} onChange={(event) => { setCourseId(event.target.value); setConversationId(undefined) }} disabled={loading}><option value="">Chọn môn học</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label></div>
     <div className="chat-shell"><div className="chat-thread" aria-live="polite">{messages.map((message, index) => <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
       <span>{message.role === 'assistant' ? <Bot size={18} /> : 'Bạn'}</span><div><p>{message.text}</p>{message.citations && message.citations.length > 0 && <div className="citations">{message.citations.map((citation) => <span key={citation.chunk_id}><FileText size={13} /> {citation.filename}{citation.page ? ` · trang ${citation.page}` : ''}</span>)}</div>}</div>
     </article>)}{busy && <div className="typing"><i /><i /><i /><span>Đang đối chiếu tài liệu</span></div>}</div>
@@ -162,4 +181,4 @@ function LoadingState({ label }: { label: string }) { return <div className="wor
 function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) { return <div className="workspace-state error-state"><p>{message}</p><button className="secondary-action" onClick={onRetry}>Thử lại</button></div> }
 function EmptyState({ icon, title, text }: { icon: ReactNode; title: string; text: string }) { return <div className="workspace-state empty-state"><span>{icon}</span><h3>{title}</h3><p>{text}</p></div> }
 function formatBytes(size: number) { return size < 1024 * 1024 ? `${Math.max(1, Math.round(size / 1024))} KB` : `${(size / 1024 / 1024).toFixed(1)} MB` }
-function statusLabel(status: StudyDocument['processing_status']) { return { pending: 'Đang chờ', processing: 'Đang xử lý', completed: 'Sẵn sàng', failed: 'Có lỗi' }[status] }
+function statusLabel(status: StudyDocument['processing_status']) { return { uploaded: 'Đã tải lên', processing: 'Đang xử lý', ready: 'Sẵn sàng', failed: 'Có lỗi' }[status] }

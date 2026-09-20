@@ -1,6 +1,6 @@
 import { clearSession, getSession, setSession } from './api'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8010/api/v1').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '')
 
 export interface Course {
   id: string
@@ -19,7 +19,7 @@ export interface StudyDocument {
   original_filename: string
   mime_type: string
   size: number
-  processing_status: 'pending' | 'processing' | 'completed' | 'failed'
+  processing_status: 'uploaded' | 'processing' | 'ready' | 'failed'
   processing_error: string | null
   page_count: number | null
   created_at: string
@@ -29,9 +29,48 @@ export interface UserProfile {
   id: string
   email: string
   full_name: string
+  avatar_url: string | null
   university: { id: string; name: string; short_name: string; logo_url: string | null } | null
   major: string | null
   student_year: number | null
+  bio?: string | null
+  role?: string
+  is_verified?: boolean
+  created_at?: string
+  study_statistics?: {
+    courses_count: number
+    documents_count: number
+    quizzes_completed: number
+    average_mastery: number
+  }
+}
+
+export interface PublicProfile {
+  id: string
+  full_name: string
+  avatar_url: string | null
+  university: UserProfile['university']
+  major: string | null
+  friendship_id: string | null
+  friendship_status: 'pending' | 'accepted' | null
+  request_incoming: boolean
+}
+
+export interface Friendship {
+  id: string
+  status: 'pending' | 'accepted'
+  request_incoming: boolean
+  profile: PublicProfile
+  created_at: string
+}
+
+export interface DirectMessage {
+  id: string
+  sender_id: string
+  recipient_id: string
+  content: string
+  created_at: string
+  read_at: string | null
 }
 
 export interface TutorReply {
@@ -102,9 +141,18 @@ async function authorized<T>(path: string, init: RequestInit = {}, retry = true)
 
 export const workspaceApi = {
   profile: () => authorized<UserProfile>('/auth/me'),
+  fullProfile: () => authorized<UserProfile>('/users/me'),
+  updateProfile: (payload: { full_name?: string; student_year?: number | null; bio?: string | null }) =>
+    authorized<UserProfile>('/users/me', { method: 'PATCH', body: JSON.stringify(payload) }),
+  uploadAvatar: (file: File) => {
+    const form = new FormData()
+    form.set('avatar', file)
+    return authorized<UserProfile>('/users/me/avatar', { method: 'POST', body: form })
+  },
   courses: () => authorized<Page<Course>>('/courses?page=1&page_size=100'),
   createCourse: (payload: { name: string; code?: string; semester?: string; color?: string }) =>
     authorized<Course>('/courses', { method: 'POST', body: JSON.stringify(payload) }),
+  deleteCourse: (id: string) => authorized<void>(`/courses/${id}`, { method: 'DELETE' }),
   documents: () => authorized<Page<StudyDocument>>('/documents?page=1&page_size=100'),
   uploadDocument: (courseId: string, file: File) => {
     const form = new FormData()
@@ -115,4 +163,13 @@ export const workspaceApi = {
   deleteDocument: (id: string) => authorized<void>(`/documents/${id}`, { method: 'DELETE' }),
   chat: (payload: { course_id: string; conversation_id?: string; message: string }) =>
     authorized<TutorReply>('/ai/chat', { method: 'POST', body: JSON.stringify(payload) }),
+  people: (query = '') => authorized<PublicProfile[]>(`/social/people?${new URLSearchParams({ q: query })}`),
+  friendships: () => authorized<Friendship[]>('/social/friendships'),
+  requestFriend: (userId: string) => authorized<Friendship>(`/social/friendships/${userId}`, { method: 'POST' }),
+  acceptFriend: (id: string) => authorized<Friendship>(`/social/friendships/${id}/accept`, { method: 'POST' }),
+  removeFriend: (id: string) => authorized<void>(`/social/friendships/${id}`, { method: 'DELETE' }),
+  publicProfile: (userId: string) => authorized<PublicProfile>(`/social/profiles/${userId}`),
+  messages: (userId: string) => authorized<DirectMessage[]>(`/social/messages/${userId}`),
+  unreadMessages: () => authorized<{ total: number; by_sender: Record<string, number> }>("/social/messages/unread"),
+  sendMessage: (userId: string, content: string) => authorized<DirectMessage>(`/social/messages/${userId}`, { method: 'POST', body: JSON.stringify({ content }) }),
 }

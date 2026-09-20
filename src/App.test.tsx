@@ -7,17 +7,35 @@ describe('StudyHubAI dashboard', () => {
   afterEach(cleanup)
   beforeEach(() => window.localStorage.clear())
 
-  it('shows the next study action and toggles task completion', async () => {
+  it('persists completion for a user-created study session', async () => {
     const user = userEvent.setup()
+    const now = new Date()
+    const today = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+    window.localStorage.setItem('studyhub-ai:state:v2', JSON.stringify({
+      version: 2,
+      focusSeconds: 1500,
+      completedSessions: 0,
+      tasks: [{
+        id: 'user-session',
+        courseId: 'course-1',
+        course: 'Môn của tôi',
+        title: 'Ôn bài do người dùng tạo',
+        duration: 30,
+        scheduledDate: today,
+        scheduledTime: '09:00',
+        tone: 'green',
+        completed: false,
+      }],
+    }))
     render(<App />)
 
     expect(screen.getByRole('heading', { name: 'Tiếp tục nhịp học' })).toBeInTheDocument()
     const task = screen.getByRole('button', {
-      name: 'Hoàn thành: Đọc cây nhị phân & ghi 3 ý chính',
+      name: 'Hoàn thành: Ôn bài do người dùng tạo',
     })
     await user.click(task)
     expect(task).toHaveAttribute('aria-pressed', 'true')
-    expect(window.localStorage.getItem('studyhub-ai:state:v1')).toContain('"completed":true')
+    expect(window.localStorage.getItem('studyhub-ai:state:v2')).toContain('"completed":true')
   })
 
   it('navigates to focus view and starts a session', async () => {

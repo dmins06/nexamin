@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.exceptions import AppError
-from app.core.storage import ObjectStorage
+from app.core.storage import StorageBackend
 from app.models import Activity, ActivityType, Document
 from app.repositories.scoped import owned_course, owned_document
 
@@ -21,7 +21,7 @@ ALLOWED_TYPES = {
 
 
 class DocumentService:
-    def __init__(self, session: AsyncSession, user_id: uuid.UUID, storage: ObjectStorage):
+    def __init__(self, session: AsyncSession, user_id: uuid.UUID, storage: StorageBackend):
         self.session = session
         self.user_id = user_id
         self.storage = storage

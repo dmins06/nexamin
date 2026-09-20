@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   BarChart3,
   BookOpen,
@@ -17,12 +17,16 @@ import {
   Sparkles,
   Target,
   TimerReset,
+  Users,
+  UserRound,
 } from 'lucide-react'
-import { initialStudyState, weekData } from './data'
+import { initialStudyState } from './data'
 import { formatTime, formatVietnameseDate } from './lib/format'
 import { logout } from './lib/api'
 import { type UserProfile, workspaceApi } from './lib/workspaceApi'
 import { CoursesView, LibraryView, TutorView } from './features/workspace/WorkspaceViews'
+import { ScheduleView } from './features/schedule/ScheduleView'
+import { CommunityView, ProfileView } from './features/social/SocialViews'
 import { loadStudyState, saveStudyState } from './lib/storage'
 import type { StudyState, StudyTask, ViewId } from './types'
 
@@ -30,10 +34,16 @@ const navItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
   { id: 'overview', label: 'Tổng quan', icon: Home },
   { id: 'courses', label: 'Môn học', icon: GraduationCap },
   { id: 'library', label: 'Tài liệu', icon: Files },
-  { id: 'tutor', label: 'Trợ lý AI', icon: Bot },
+  { id: 'tutor', label: 'Emin AI', icon: Bot },
   { id: 'schedule', label: 'Lịch học', icon: CalendarDays },
   { id: 'focus', label: 'Tập trung', icon: TimerReset },
   { id: 'progress', label: 'Tiến độ', icon: BarChart3 },
+  { id: 'community', label: 'Bạn học', icon: Users },
+]
+
+const mobileNavItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
+  ...navItems,
+  { id: 'profile', label: 'Hồ sơ', icon: UserRound },
 ]
 
 function App() {
@@ -43,9 +53,20 @@ function App() {
   )
   const [timerRunning, setTimerRunning] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => saveStudyState(study), [study])
   useEffect(() => { void workspaceApi.profile().then(setProfile).catch(() => undefined) }, [])
+  const refreshUnread = useCallback(() => {
+    void workspaceApi.unreadMessages().then((summary) => setUnreadMessages(summary.total)).catch(() => undefined)
+  }, [])
+  useEffect(() => {
+    refreshUnread()
+    const timer = window.setInterval(refreshUnread, 15_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshUnread() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible) }
+  }, [refreshUnread])
 
   useEffect(() => {
     if (!timerRunning) return
@@ -74,6 +95,17 @@ function App() {
     }))
   }
 
+  const addTask = (task: StudyTask) => {
+    setStudy((current) => ({ ...current, tasks: [...current.tasks, task] }))
+  }
+
+  const deleteTask = (taskId: string) => {
+    setStudy((current) => ({
+      ...current,
+      tasks: current.tasks.filter((task) => task.id !== taskId),
+    }))
+  }
+
   const resetTimer = () => {
     setTimerRunning(false)
     setStudy((current) => ({ ...current, focusSeconds: 25 * 60 }))
@@ -82,9 +114,9 @@ function App() {
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-      <Sidebar active={view} onNavigate={setView} profile={profile} />
+      <Sidebar active={view} onNavigate={setView} profile={profile} unreadMessages={unreadMessages} />
       <main className="main-content" id="main-content">
-        <Header profile={profile} />
+        <Header profile={profile} sessions={study.completedSessions} />
         {view === 'overview' && (
           <Overview
             study={study}
@@ -99,7 +131,13 @@ function App() {
         {view === 'library' && <LibraryView />}
         {view === 'tutor' && <TutorView />}
         {view === 'schedule' && (
-          <ScheduleView tasks={study.tasks} onToggleTask={toggleTask} />
+          <ScheduleView
+            tasks={study.tasks}
+            onAddTask={addTask}
+            onToggleTask={toggleTask}
+            onDeleteTask={deleteTask}
+            onOpenCourses={() => setView('courses')}
+          />
         )}
         {view === 'focus' && (
           <FocusView
@@ -111,8 +149,10 @@ function App() {
           />
         )}
         {view === 'progress' && <ProgressView study={study} />}
+        {view === 'community' && <CommunityView ownId={profile?.id} onMessagesRead={refreshUnread} />}
+        {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
       </main>
-      <MobileNav active={view} onNavigate={setView} />
+      <MobileNav active={view} onNavigate={setView} unreadMessages={unreadMessages} />
     </div>
   )
 }
@@ -135,8 +175,8 @@ function Brand() {
   )
 }
 
-function Sidebar({ active, onNavigate, profile }: NavigationProps & { profile: UserProfile | null }) {
-  const displayName = profile?.full_name ?? "Minh An"
+function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProps & { profile: UserProfile | null; unreadMessages: number }) {
+  const displayName = profile?.full_name ?? "Sinh viên"
   const initials = displayName.split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase()
   return (
     <aside className="sidebar">
@@ -153,6 +193,7 @@ function Sidebar({ active, onNavigate, profile }: NavigationProps & { profile: U
             >
               <Icon size={19} strokeWidth={1.8} />
               <span>{item.label}</span>
+              {item.id === 'community' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
             </button>
           )
         })}
@@ -162,18 +203,17 @@ function Sidebar({ active, onNavigate, profile }: NavigationProps & { profile: U
         <p>Mỗi phiên học là một dấu mốc nhỏ.</p>
       </div>
       <div className="student-chip">
-        <span className="avatar">{initials}</span>
-        <span><strong>{displayName}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span>
+        <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
         <button className="logout-button" aria-label="Đăng xuất" title="Đăng xuất" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={16} /></button>
       </div>
     </aside>
   )
 }
 
-function MobileNav({ active, onNavigate }: NavigationProps) {
+function MobileNav({ active, onNavigate, unreadMessages }: NavigationProps & { unreadMessages: number }) {
   return (
     <nav className="mobile-nav" aria-label="Điều hướng di động">
-      {navItems.map((item) => {
+      {mobileNavItems.map((item) => {
         const Icon = item.icon
         return (
           <button
@@ -185,6 +225,7 @@ function MobileNav({ active, onNavigate }: NavigationProps) {
           >
             <Icon size={20} />
             <span>{item.label}</span>
+              {item.id === 'community' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
           </button>
         )
       })}
@@ -192,17 +233,17 @@ function MobileNav({ active, onNavigate }: NavigationProps) {
   )
 }
 
-function Header({ profile }: { profile: UserProfile | null }) {
-  const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? "Minh"
+function Header({ profile, sessions }: { profile: UserProfile | null; sessions: number }) {
+  const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? "bạn"
   return (
     <header className="topbar">
       <div>
         <p className="today">{formatVietnameseDate()}</p>
         <h1>Chào buổi sáng, {firstName}</h1>
       </div>
-      <div className="day-pulse" aria-label="Chuỗi học 8 ngày">
+      <div className="day-pulse" aria-label={`${sessions} phiên tập trung đã hoàn thành`}>
         <span className="pulse-leaf" aria-hidden="true" />
-        <span><strong>8 ngày</strong><small>duy trì nhịp học</small></span>
+        <span><strong>{sessions} phiên</strong><small>đã hoàn thành</small></span>
       </div>
     </header>
   )
@@ -217,72 +258,34 @@ interface OverviewProps {
   onNavigate: (view: ViewId) => void
 }
 
-function Overview({
-  study,
-  timerRunning,
-  onToggleTimer,
-  onResetTimer,
-  onToggleTask,
-  onNavigate,
-}: OverviewProps) {
-  const completed = study.tasks.filter((task) => task.completed).length
-  return (
-    <div className="view-stack">
-      <section className="study-spread" aria-labelledby="continue-title">
-        <div className="focus-specimen">
-          <div className="section-heading">
-            <div>
-              <h2 id="continue-title">Tiếp tục nhịp học</h2>
-              <p>Khuyến nghị dựa trên kế hoạch hôm nay</p>
-            </div>
-            <span className="course-code">CTDL · 04</span>
-          </div>
-          <div className="specimen-body">
-            <div className="course-copy">
-              <span className="subject-mark" aria-hidden="true" />
-              <h3>Cấu trúc dữ liệu</h3>
-              <p className="lesson">Cây nhị phân và phép duyệt</p>
-              <p className="objective">Mục tiêu: nắm vững ba cách duyệt cây và hoàn thành bài 4.1–4.3.</p>
-              <div className="course-meta">
-                <span><BookOpen size={16} /> Chương 4</span>
-                <span><Target size={16} /> 1 mục tiêu</span>
-              </div>
-            </div>
-            <MiniTimer
-              seconds={study.focusSeconds}
-              running={timerRunning}
-              onToggle={onToggleTimer}
-              onReset={onResetTimer}
-            />
-          </div>
+function Overview({ study, timerRunning, onToggleTimer, onResetTimer, onToggleTask, onNavigate }: OverviewProps) {
+  const now = new Date()
+  const localToday = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
+  const todayTasks = study.tasks.filter((task) => task.scheduledDate === localToday)
+  const completed = todayTasks.filter((task) => task.completed).length
+  const upcoming = [...study.tasks].filter((task) => !task.completed).sort((first, second) => `${first.scheduledDate}T${first.scheduledTime}`.localeCompare(`${second.scheduledDate}T${second.scheduledTime}`))[0]
+  return <div className="view-stack">
+    <section className="study-spread" aria-labelledby="continue-title">
+      <div className="focus-specimen">
+        <div className="section-heading"><div><h2 id="continue-title">Tiếp tục nhịp học</h2><p>{upcoming ? 'Buổi gần nhất trong lịch của bạn' : 'Bắt đầu bằng một kế hoạch vừa sức'}</p></div>{upcoming && <span className="course-code">{upcoming.scheduledDate} · {upcoming.scheduledTime}</span>}</div>
+        <div className="specimen-body">
+          {upcoming ? <div className="course-copy"><span className="subject-mark" aria-hidden="true" /><h3>{upcoming.course}</h3><p className="lesson">{upcoming.title}</p><p className="objective">Buổi học {upcoming.duration} phút do bạn lên lịch.</p><div className="course-meta"><span><BookOpen size={16} /> {upcoming.scheduledDate}</span><span><Target size={16} /> {upcoming.scheduledTime}</span></div></div> :
+            <div className="course-copy empty-plan"><CalendarDays size={26} /><h3>Chưa có lịch học</h3><p className="objective">Thêm môn học và xếp buổi đầu tiên để StudyHubAI đồng hành cùng bạn.</p><button className="secondary-action" type="button" onClick={() => onNavigate('schedule')}>Mở lịch học</button></div>}
+          <MiniTimer seconds={study.focusSeconds} running={timerRunning} onToggle={onToggleTimer} onReset={onResetTimer} />
         </div>
-        <WeekChart />
-      </section>
-
-      <section className="task-ledger" aria-labelledby="today-title">
-        <div className="section-heading ledger-heading">
-          <div>
-            <h2 id="today-title">Hôm nay</h2>
-            <p>{completed}/{study.tasks.length} việc đã hoàn thành</p>
-          </div>
-          <button className="text-button" onClick={() => onNavigate('schedule')}>
-            Xem lịch học <ChevronRight size={16} />
-          </button>
-        </div>
-        <div className="task-list">
-          {study.tasks.map((task, index) => (
-            <TaskRow
-              key={task.id}
-              task={task}
-              index={index}
-              onToggle={onToggleTask}
-            />
-          ))}
-        </div>
-      </section>
-    </div>
-  )
+      </div>
+      <WeekChart />
+    </section>
+    <section className="task-ledger" aria-labelledby="today-title">
+      <div className="section-heading ledger-heading"><div><h2 id="today-title">Hôm nay</h2><p>{completed}/{todayTasks.length} việc đã hoàn thành</p></div><button className="text-button" onClick={() => onNavigate('schedule')}>Xem lịch học <ChevronRight size={16} /></button></div>
+      <div className="task-list">
+        {todayTasks.length === 0 && <div className="ledger-empty"><p>Hôm nay chưa có lịch học.</p><button className="text-button" type="button" onClick={() => onNavigate('schedule')}>Thêm buổi học <ChevronRight size={16} /></button></div>}
+        {todayTasks.map((task, index) => <TaskRow key={task.id} task={task} index={index} onToggle={onToggleTask} />)}
+      </div>
+    </section>
+  </div>
 }
+
 
 interface MiniTimerProps {
   seconds: number
@@ -311,29 +314,19 @@ function MiniTimer({ seconds, running, onToggle, onReset }: MiniTimerProps) {
 }
 
 function WeekChart() {
-  const max = Math.max(...weekData.map((item) => item.minutes))
-  const total = weekData.reduce((sum, item) => sum + item.minutes, 0)
   return (
     <section className="week-chart" aria-labelledby="week-title">
       <div className="section-heading">
         <div>
           <h2 id="week-title">Nhịp học tuần này</h2>
-          <p>{Math.floor(total / 60)} giờ {total % 60} phút tập trung</p>
+          <p>Chưa có phiên nào được ghi nhận</p>
         </div>
-        <span className="trend">+12%</span>
       </div>
-      <div className="bars" role="img" aria-label="Biểu đồ phút học từ thứ Hai đến Chủ nhật">
-        {weekData.map((item) => (
-          <div className="bar-item" key={item.day}>
-            <span className="bar-value">{item.minutes}</span>
-            <span className="bar-stem" style={{ height: `${Math.round((item.minutes / max) * 100)}%` }}>
-              <span aria-hidden="true" />
-            </span>
-            <span className="bar-day">{item.day}</span>
-          </div>
-        ))}
+      <div className="chart-empty">
+        <CalendarDays size={27} aria-hidden="true" />
+        <strong>Dữ liệu sẽ được tạo từ hoạt động của bạn</strong>
+        <p>Hoàn thành buổi học và phiên tập trung để xem nhịp học.</p>
       </div>
-      <p className="chart-note">Nhịp tốt nhất của bạn thường bắt đầu sau 9 giờ sáng.</p>
     </section>
   )
 }
@@ -362,32 +355,12 @@ function TaskRow({ task, index, onToggle }: TaskRowProps) {
       </div>
       <div className="task-time">
         <span><Clock3 size={14} /> {task.duration} phút</span>
-        <small>{task.due}</small>
+        <small>{task.scheduledDate} · {task.scheduledTime}</small>
       </div>
     </article>
   )
 }
 
-function ScheduleView({ tasks, onToggleTask }: { tasks: StudyTask[]; onToggleTask: (id: string) => void }) {
-  const groups = ['Buổi sáng', 'Buổi chiều', 'Ngày mai']
-  return (
-    <section className="page-view" aria-labelledby="schedule-title">
-      <div className="page-intro">
-        <span className="folio">Tuần 12</span>
-        <h2 id="schedule-title">Lịch học đang mở</h2>
-        <p>Ba điểm hẹn học tập được xếp theo năng lượng trong ngày.</p>
-      </div>
-      <div className="timeline">
-        {tasks.map((task, index) => (
-          <div className="timeline-entry" key={task.id}>
-            <div className="timeline-time"><strong>{index === 0 ? '09:00' : index === 1 ? '14:00' : '19:30'}</strong><span>{groups[index]}</span></div>
-            <TaskRow task={task} index={index} onToggle={onToggleTask} />
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
 
 function FocusView({ seconds, running, sessions, onToggle, onReset }: { seconds: number; running: boolean; sessions: number; onToggle: () => void; onReset: () => void }) {
   return (
@@ -395,7 +368,7 @@ function FocusView({ seconds, running, sessions, onToggle, onReset }: { seconds:
       <div className="page-intro">
         <span className="folio">Phiên {sessions + 1}</span>
         <h2 id="focus-title">Một việc, trọn một nhịp</h2>
-        <p>Tắt bớt tiếng ồn. Phiên này dành cho cây nhị phân và phép duyệt.</p>
+        <p>Tắt bớt tiếng ồn và dành trọn phiên này cho mục tiêu bạn đã chọn.</p>
       </div>
       <div className={running ? 'focus-clock active' : 'focus-clock'}>
         <span className="focus-sprout" aria-hidden="true"><i /><i /><i /></span>
@@ -420,40 +393,27 @@ function FocusView({ seconds, running, sessions, onToggle, onReset }: { seconds:
 
 function ProgressView({ study }: { study: StudyState }) {
   const done = study.tasks.filter((task) => task.completed).length
-  const completion = Math.round((done / study.tasks.length) * 100)
-  const courseProgress = [
-    { name: 'Cấu trúc dữ liệu', value: 72 },
-    { name: 'Xác suất thống kê', value: 58 },
-    { name: 'Cơ sở dữ liệu', value: 46 },
-  ]
-  return (
-    <section className="page-view" aria-labelledby="progress-title">
-      <div className="page-intro">
-        <span className="folio">Nhật ký tuần</span>
-        <h2 id="progress-title">Tiến bộ đang bén rễ</h2>
-        <p>Nhìn lại vừa đủ để biết bước tiếp theo nên đặt ở đâu.</p>
+  const completion = study.tasks.length ? Math.round((done / study.tasks.length) * 100) : 0
+  const grouped = study.tasks.reduce<Map<string, { total: number; done: number }>>((result, task) => {
+    const current = result.get(task.course) ?? { total: 0, done: 0 }
+    current.total += 1
+    if (task.completed) current.done += 1
+    result.set(task.course, current)
+    return result
+  }, new Map())
+  const courseProgress = [...grouped].map(([name, value]) => ({ name, value: Math.round(value.done / value.total * 100) }))
+  return <section className="page-view" aria-labelledby="progress-title">
+    <div className="page-intro"><span className="folio">Nhật ký tuần</span><h2 id="progress-title">Tiến bộ đang bén rễ</h2><p>Nhìn lại vừa đủ để biết bước tiếp theo nên đặt ở đâu.</p></div>
+    <div className="progress-spread">
+      <div className="progress-summary"><span className="big-number">{completion}%</span><h3>Kế hoạch của bạn</h3><p>{done} trong {study.tasks.length} việc đã hoàn thành. Dữ liệu được lưu trên thiết bị này.</p></div>
+      <div className="course-progress">
+        {courseProgress.length === 0 && <p className="progress-empty">Chưa có dữ liệu môn học. Hãy thêm lịch và hoàn thành buổi học đầu tiên.</p>}
+        {courseProgress.map((course) => <div className="progress-line" key={course.name}><div><span>{course.name}</span><strong>{course.value}%</strong></div><span className="progress-track"><i style={{ width: `${course.value}%` }} /></span></div>)}
       </div>
-      <div className="progress-spread">
-        <div className="progress-summary">
-          <span className="big-number">{completion}%</span>
-          <h3>Kế hoạch hôm nay</h3>
-          <p>{done} trong {study.tasks.length} việc đã hoàn thành. Dữ liệu được lưu trên thiết bị này.</p>
-        </div>
-        <div className="course-progress">
-          {courseProgress.map((course) => (
-            <div className="progress-line" key={course.name}>
-              <div><span>{course.name}</span><strong>{course.value}%</strong></div>
-              <span className="progress-track"><i style={{ width: `${course.value}%` }} /></span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="insight-note">
-        <Sparkles size={20} />
-        <div><h3>Một quan sát nhỏ</h3><p>Bạn hoàn thành nhiều hơn khi phiên đầu tiên dưới 40 phút. Hãy giữ nhịp mở đầu vừa sức.</p></div>
-      </div>
-    </section>
-  )
+    </div>
+    <div className="insight-note"><Sparkles size={20} /><div><h3>Dữ liệu thuộc về bạn</h3><p>StudyHubAI chỉ tạo nhận xét sau khi bạn có đủ hoạt động học tập thực tế.</p></div></div>
+  </section>
 }
+
 
 export default App

@@ -42,6 +42,8 @@ class TextSplitter:
                 chunk = normalized[cursor:end].strip()
                 if chunk:
                     chunks.append((page, chunk))
+                if end >= len(normalized):
+                    break
                 cursor = max(end - self.overlap, cursor + 1)
         return chunks
 
@@ -76,6 +78,33 @@ class PermissionScopedRetriever:
                 score=max(0.0, 1.0 - float(distance_value)),
             )
             for chunk, filename, distance_value in rows
+        ]
+
+    async def retrieve_lexical(
+        self, *, user_id: uuid.UUID, course_id: uuid.UUID
+    ) -> list[RetrievedChunk]:
+        statement = (
+            select(DocumentChunk, Document.filename)
+            .join(Document, Document.id == DocumentChunk.document_id)
+            .where(
+                Document.user_id == user_id,
+                Document.course_id == course_id,
+                DocumentChunk.course_id == course_id,
+            )
+            .order_by(DocumentChunk.chunk_index)
+            .limit(settings.rag_top_k)
+        )
+        rows = (await self.session.execute(statement)).all()
+        return [
+            RetrievedChunk(
+                id=chunk.id,
+                document_id=chunk.document_id,
+                filename=filename,
+                content=chunk.content,
+                page_number=chunk.page_number,
+                score=0.5,
+            )
+            for chunk, filename in rows
         ]
 
 

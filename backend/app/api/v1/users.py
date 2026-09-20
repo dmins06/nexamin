@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, UploadFile
 
 from app.config import settings
 from app.core.exceptions import AppError
-from app.core.storage import storage
+from app.core.storage import local_storage, storage
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import ProfileUpdate, UserResponse
 from app.schemas.profile import ProfileResponse
@@ -25,6 +25,7 @@ async def update_profile(
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(user, field, value)
     await session.commit()
+    await session.refresh(user)
     await session.refresh(user, attribute_names=["university"])
     return UserResponse.model_validate(user)
 
@@ -42,8 +43,13 @@ async def upload_avatar(
         raise AppError("INVALID_AVATAR", "Avatar must be a PNG, JPEG, or WebP under 5 MB", 415)
     key = f"users/{user.id}/avatar/{uuid.uuid4()}{extension}"
     content_type = {".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp"}[extension]
-    await storage.upload(key, content, content_type)
-    user.avatar_url = f"{settings.s3_endpoint}/{settings.s3_bucket}/{key}"
+    if settings.storage_provider == "local":
+        await local_storage.upload(key, content, content_type)
+        user.avatar_url = f"{settings.media_base_url.rstrip('/')}/{key}"
+    else:
+        await storage.upload(key, content, content_type)
+        user.avatar_url = f"{settings.s3_endpoint}/{settings.s3_bucket}/{key}"
     await session.commit()
+    await session.refresh(user)
     await session.refresh(user, attribute_names=["university"])
     return UserResponse.model_validate(user)

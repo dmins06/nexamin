@@ -1,6 +1,6 @@
 import type { StudyState } from '../types'
 
-const STORAGE_KEY = 'studyhub-ai:state:v1'
+const STORAGE_KEY = 'studyhub-ai:state:v2'
 
 export function loadStudyState(fallback: StudyState): StudyState {
   try {
@@ -26,7 +26,7 @@ function isStudyState(value: unknown): value is StudyState {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<StudyState>
   return (
-    candidate.version === 1 &&
+    candidate.version === 2 &&
     typeof candidate.focusSeconds === 'number' &&
     typeof candidate.completedSessions === 'number' &&
     Array.isArray(candidate.tasks)

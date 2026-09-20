@@ -10,6 +10,7 @@ from app.api.v1 import (
     documents,
     planning,
     quizzes,
+    social,
     topics,
     universities,
     users,
@@ -26,6 +27,7 @@ api_router.include_router(documents.router)
 api_router.include_router(ai.router)
 api_router.include_router(conversations.router)
 api_router.include_router(quizzes.router)
+api_router.include_router(social.router)
 api_router.include_router(planning.progress_router)
 api_router.include_router(planning.deadline_router)
 api_router.include_router(planning.calendar_router)

@@ -25,6 +25,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         request: Request,
         call_next: Callable[[Request], Awaitable[Response]],
     ) -> Response:
+        if not settings.rate_limit_enabled and settings.app_env != "production":
+            return await call_next(request)
         rule = self.limits.get(request.url.path)
         if rule is None:
             return await call_next(request)

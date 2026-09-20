@@ -14,9 +14,11 @@ tiến độ trong một giao diện responsive.
   ưu tiên; đơn vị không công bố favicon dùng con dấu mã trường riêng để không
   hiển thị sai thương hiệu.
 - Mật khẩu đăng ký tối thiểu 6 ký tự.
-- Dashboard, lịch học, Pomodoro, công việc và thống kê tiến độ có lưu cục bộ.
-- Quản lý môn học, tải tài liệu, xử lý nền và thư viện học tập.
-- Gia sư RAG theo môn học, câu trả lời kèm trích dẫn nguồn.
+- Lịch học thật theo ngày: thêm, hoàn thành và xóa buổi học; tiến độ được tính từ dữ liệu người dùng và lưu cục bộ.
+- Hồ sơ riêng đầy đủ, chỉnh sửa tên/năm học/giới thiệu và tải ảnh đại diện PNG, JPEG hoặc WebP.
+- Hồ sơ công khai tối giản, kết bạn, nhắn tin trực tiếp và chấm đỏ khi có tin nhắn chưa đọc.
+- Quản lý môn học; tải, kiểm tra và xử lý PDF, DOCX, PPTX, TXT bằng local storage hoặc S3/MinIO.
+- Emin AI hoạt động ngay ở chế độ local, dùng tài liệu đã tải để trả lời có trích dẫn; có thể đổi sang Ollama hoặc API OpenAI-compatible.
 - Quiz, chấm bài, mức độ thành thạo và gợi ý kế hoạch học.
 
 ## Công nghệ
@@ -41,15 +43,37 @@ npm run dev
 - Frontend: `http://localhost:5173`
 - API docs: `http://localhost:8010/docs`
 
+### Chạy không cần Docker
+
+Sau khi đã tạo môi trường Python và cài backend một lần:
+
+```bash
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -e '.[dev]'
+cd ..
+npm run dev:full
+```
+
+Lệnh `dev:full` tự khởi tạo schema trên SQLite cục bộ, khởi động API tại cổng
+`8010` và frontend tại cổng `5173`. Dữ liệu phát triển được lưu trong
+`backend/studyhub-dev.db` và không được commit.
+
 Nếu chỉ phát triển backend không qua Docker:
 
 ```bash
 cd backend
 python -m venv .venv
 .venv/bin/pip install -e '.[dev]'
-.venv/bin/alembic upgrade head
-.venv/bin/uvicorn app.main:app --reload
+cd ..
+npm run dev:backend
 ```
+
+## Triển khai miễn phí trên Render
+
+Project có `Dockerfile` full-stack và `render.yaml`. Sau khi repo private đã có trên GitHub, tạo **New Blueprint** trong Render và chọn repo. Blueprint tạo một domain HTTPS `*.onrender.com`, PostgreSQL và Key Value. JWT được Render tự sinh; không cần commit `.env`.
+
+> Gói miễn phí phù hợp bản preview: web service ngủ khi không hoạt động, PostgreSQL miễn phí hết hạn sau 30 ngày và file upload local có thể mất khi service restart. Muốn lưu file lâu dài, đặt `STORAGE_PROVIDER=s3` và khai báo secret S3 trong Render.
 
 ## Kiểm tra chất lượng
 
@@ -61,7 +85,7 @@ npm run build
 
 cd backend
 .venv/bin/ruff check .
-.venv/bin/mypy app --ignore-missing-imports
+.venv/bin/mypy app scripts
 .venv/bin/pytest -q
 ```
 
@@ -71,7 +95,7 @@ cd backend
 - Backend đọc PostgreSQL, Redis, MinIO, JWT, OAuth và cấu hình mô hình AI từ
   `backend/.env`.
 - Chỉ sao chép từ các file `.env.example`; không commit secret thật.
-- Migration `0002` nhập danh mục 426 trường, `0003` đồng bộ metadata logo và `0004` hỗ trợ tên chương trình đào tạo dài.
+- Migration `0002` nhập danh mục 426 trường, `0003` đồng bộ logo, `0004` hỗ trợ tên chương trình dài và `0005` thêm kết bạn/tin nhắn.
 
 Xem [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md), [DESIGN.md](DESIGN.md)
 và [AGENTS.md](AGENTS.md) để biết thêm quy ước kiến trúc và giao diện.

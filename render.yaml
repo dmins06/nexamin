@@ -1,0 +1,45 @@
+services:
+  - type: keyvalue
+    name: studyhubai-cache
+    plan: free
+    region: singapore
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+  - type: web
+    name: studyhubai
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health/live
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: studyhubai-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: studyhubai-cache
+          type: keyvalue
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: RATE_LIMIT_ENABLED
+        value: true
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: MEDIA_BASE_URL
+        value: /media
+      - key: LLM_PROVIDER
+        value: local
+
+databases:
+  - name: studyhubai-db
+    plan: free
+    region: singapore
+    databaseName: studyhubai
+    user: studyhubai

@@ -86,6 +86,11 @@ class ActivityType(str, enum.Enum):
     STUDY_SESSION = "study_session"
 
 
+class FriendshipStatus(str, enum.Enum):
+    PENDING = "pending"
+    ACCEPTED = "accepted"
+
+
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -366,6 +371,37 @@ class Activity(UUIDMixin, Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
+
+
+class Friendship(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "friendships"
+    __table_args__ = (UniqueConstraint("user_a_id", "user_b_id"),)
+
+    user_a_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_b_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    requested_by_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    status: Mapped[FriendshipStatus] = mapped_column(
+        Enum(FriendshipStatus, native_enum=False), default=FriendshipStatus.PENDING, index=True
+    )
+
+
+class DirectMessage(UUIDMixin, Base):
+    __tablename__ = "direct_messages"
+    __table_args__ = (
+        Index("ix_direct_messages_pair_created", "sender_id", "recipient_id", "created_at"),
+    )
+
+    sender_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    recipient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    content: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class AIRequestLog(UUIDMixin, Base):

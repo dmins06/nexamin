@@ -14,6 +14,9 @@ backend/.venv/
 .ruff_cache/
 *.py[cod]
 *.log
+backend/studyhub-dev.db
+backend/studyhub-dev.db-*
+backend/media/
 .DS_Store
 .impeccable/review/
 .impeccable/hook.cache.json

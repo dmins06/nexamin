@@ -1,17 +1,19 @@
-export type ViewId = 'overview' | 'courses' | 'library' | 'tutor' | 'schedule' | 'focus' | 'progress'
+export type ViewId = 'overview' | 'courses' | 'library' | 'tutor' | 'schedule' | 'focus' | 'progress' | 'community' | 'profile'
 
 export interface StudyTask {
   id: string
+  courseId: string
   course: string
   title: string
   duration: number
-  due: string
+  scheduledDate: string
+  scheduledTime: string
   tone: 'green' | 'amber' | 'clay'
   completed: boolean
 }
 
 export interface StudyState {
-  version: 1
+  version: 2
   tasks: StudyTask[]
   focusSeconds: number
   completedSessions: number

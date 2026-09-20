@@ -29,7 +29,7 @@ interface ApiErrorBody {
   detail?: string | Array<{ msg?: string }>
 }
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8010/api/v1').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '')
 const SESSION_KEY = 'studyhub.auth.v1'
 
 function errorMessage(body: ApiErrorBody, fallback: string) {

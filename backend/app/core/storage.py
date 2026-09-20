@@ -1,9 +1,42 @@
 import asyncio
+from pathlib import Path
+from typing import Protocol
 
-import boto3
-from botocore.client import BaseClient
+import boto3  # type: ignore[import-untyped]
+from botocore.client import BaseClient  # type: ignore[import-untyped]
 
 from app.config import settings
+
+MEDIA_ROOT = Path(__file__).resolve().parents[2] / "media"
+
+
+class StorageBackend(Protocol):
+    async def upload(self, key: str, content: bytes, content_type: str) -> None: ...
+
+    async def delete(self, key: str) -> None: ...
+
+
+class LocalStorage:
+    async def upload(self, key: str, content: bytes, content_type: str) -> None:
+        del content_type
+        destination = (MEDIA_ROOT / key).resolve()
+        if MEDIA_ROOT.resolve() not in destination.parents:
+            raise ValueError("Invalid storage key")
+        await asyncio.to_thread(destination.parent.mkdir, parents=True, exist_ok=True)
+        await asyncio.to_thread(destination.write_bytes, content)
+
+    async def download(self, key: str) -> bytes:
+        source = (MEDIA_ROOT / key).resolve()
+        if MEDIA_ROOT.resolve() not in source.parents:
+            raise ValueError("Invalid storage key")
+        return await asyncio.to_thread(source.read_bytes)
+
+    async def delete(self, key: str) -> None:
+        target = (MEDIA_ROOT / key).resolve()
+        if MEDIA_ROOT.resolve() not in target.parents:
+            raise ValueError("Invalid storage key")
+        if target.exists():
+            await asyncio.to_thread(target.unlink)
 
 
 class ObjectStorage:
@@ -45,3 +78,4 @@ class ObjectStorage:
 
 
 storage = ObjectStorage()
+local_storage = LocalStorage()
