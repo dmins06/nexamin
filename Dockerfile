@@ -22,4 +22,4 @@ COPY --from=frontend /build/dist ./frontend
 RUN mkdir -p /app/media && chown -R app:app /app
 USER app
 EXPOSE 10000
-CMD ["sh", "-c", "alembic upgrade head && python scripts/init_dev_db.py && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --proxy-headers"]
+CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000} --proxy-headers"]

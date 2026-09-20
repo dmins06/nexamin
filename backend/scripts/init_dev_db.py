@@ -7,11 +7,15 @@ from pathlib import Path
 
 from sqlalchemy import select
 
+from app.config import settings
 from app.database import Base, SessionFactory, engine
 from app.models import University
 
 
 async def initialize() -> None:
+    if settings.app_env == "production" or engine.url.get_backend_name() != "sqlite":
+        raise RuntimeError("init_dev_db.py is restricted to local SQLite development")
+
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
 
