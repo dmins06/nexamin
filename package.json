@@ -4,9 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "sh scripts/dev-full.sh",
+    "dev:frontend": "vite",
     "dev:backend": "sh scripts/dev-backend.sh",
-    "dev:full": "sh scripts/dev-full.sh",
+    "dev:full": "npm run dev",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "typecheck": "tsc -b --pretty false",

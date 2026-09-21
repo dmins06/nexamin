@@ -1,0 +1,116 @@
+/* Spatial continuity for the Learning Observatory workspace. */
+.main-content {
+  perspective: 1600px;
+  perspective-origin: 50% 18%;
+}
+
+.view-stage {
+  position: relative;
+  min-width: 0;
+  transform-style: preserve-3d;
+  view-transition-name: workspace;
+  animation: workspace-fallback-in .48s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+.view-stage-glint {
+  position: absolute;
+  z-index: 8;
+  top: 12px;
+  bottom: 5%;
+  left: -12%;
+  width: 18%;
+  min-width: 90px;
+  pointer-events: none;
+  opacity: 0;
+  transform: skewX(-10deg) translate3d(-160%, 0, 70px);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 10%, transparent), color-mix(in srgb, var(--primary-bright) 13%, transparent), transparent);
+  filter: blur(7px);
+  animation: workspace-glint .62s cubic-bezier(.16, 1, .3, 1) both;
+}
+
+@keyframes workspace-fallback-in {
+  from {
+    opacity: .3;
+    transform: translate3d(0, 16px, -54px) rotateX(2.8deg) rotateY(-1.4deg);
+    filter: blur(7px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateX(0) rotateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes workspace-glint {
+  0%, 18% { opacity: 0; transform: skewX(-10deg) translate3d(-160%, 0, 70px); }
+  38% { opacity: .9; }
+  100% { opacity: 0; transform: skewX(-10deg) translate3d(720%, 0, 70px); }
+}
+
+@keyframes workspace-old {
+  to {
+    opacity: 0;
+    transform: translate3d(-22px, -7px, -90px) rotateY(2.2deg);
+    filter: blur(8px);
+  }
+}
+
+@keyframes workspace-new {
+  from {
+    opacity: 0;
+    transform: translate3d(24px, 12px, -100px) rotateY(-2.6deg);
+    filter: blur(9px);
+    clip-path: inset(0 7% 0 0 round 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateY(0);
+    filter: blur(0);
+    clip-path: inset(0 round 0);
+  }
+}
+
+@supports (view-transition-name: workspace) {
+  .view-stage { animation: none; }
+  ::view-transition-group(workspace) {
+    animation-duration: .52s;
+    animation-timing-function: cubic-bezier(.16, 1, .3, 1);
+    perspective: 1500px;
+  }
+  ::view-transition-old(workspace) {
+    animation: workspace-old .28s cubic-bezier(.4, 0, 1, 1) both;
+    transform-origin: 0 40%;
+  }
+  ::view-transition-new(workspace) {
+    animation: workspace-new .52s cubic-bezier(.16, 1, .3, 1) both;
+    transform-origin: 100% 35%;
+  }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+}
+
+@media (hover: hover) and (min-width: 761px) {
+  .course-tile, .document-list article, .schedule-entry, .profile-stats > div, .person-row, .rail-card {
+    transform: translate3d(0, 0, 0);
+    transform-style: preserve-3d;
+    transition: transform .22s cubic-bezier(.16, 1, .3, 1), background-color .2s ease, box-shadow .22s ease;
+  }
+  .course-tile:hover, .document-list article:hover, .schedule-entry:hover, .profile-stats > div:hover, .person-row:hover, .rail-card:hover {
+    transform: translate3d(0, -3px, 14px) rotateX(.7deg);
+    box-shadow: 0 17px 38px rgba(1, 5, 14, .28) !important;
+  }
+  .nav-item svg, .mobile-nav svg { transition: transform .25s cubic-bezier(.16, 1, .3, 1), filter .25s ease; }
+  .nav-item:hover svg { transform: translateZ(18px) rotate(-4deg) scale(1.06); }
+}
+
+@media (max-width: 760px) {
+  .view-stage { animation-duration: .34s; }
+  .view-stage-glint { display: none; }
+  ::view-transition-old(workspace), ::view-transition-new(workspace) { animation-duration: .34s; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-stage { animation: none; }
+  .view-stage-glint { display: none; }
+  ::view-transition-old(workspace), ::view-transition-new(workspace) { animation: none; }
+  .course-tile, .document-list article, .schedule-entry, .profile-stats > div, .person-row, .rail-card { transform: none !important; }
+}

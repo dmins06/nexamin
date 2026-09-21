@@ -15,4 +15,4 @@ sh "$project_dir/scripts/dev-backend.sh" &
 backend_pid=$!
 
 cd "$project_dir"
-npm run dev
+npm run dev:frontend

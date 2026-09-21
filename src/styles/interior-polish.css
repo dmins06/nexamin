@@ -1,0 +1,112 @@
+/* Keep every authenticated surface inside the same nocturnal observatory world. */
+.course-form,
+.upload-strip,
+.document-list,
+.chat-shell,
+.chat-composer,
+.schedule-form,
+.schedule-course-notice,
+.schedule-empty,
+.community-layout,
+.profile-form {
+  color: var(--text);
+  background: rgba(13, 20, 34, .82);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.course-form,
+.upload-strip,
+.schedule-form,
+.profile-form {
+  background:
+    linear-gradient(125deg, color-mix(in srgb, var(--surface-soft) 94%, transparent), rgba(10, 16, 29, .9));
+}
+
+.document-list,
+.community-layout,
+.chat-shell {
+  background:
+    radial-gradient(circle at 72% 0, color-mix(in srgb, var(--primary) 9%, transparent), transparent 28rem),
+    rgba(10, 16, 29, .82);
+}
+
+.schedule-course-notice,
+.schedule-empty {
+  background:
+    radial-gradient(circle at 50% 25%, rgba(124, 108, 255, .1), transparent 17rem),
+    rgba(10, 16, 29, .74);
+}
+
+.schedule-course-notice h3,
+.schedule-empty h3,
+.schedule-entry-copy h3,
+.social-empty h3,
+.workspace-state h3 {
+  color: var(--text);
+}
+
+.schedule-course-notice p,
+.schedule-empty p,
+.social-empty p {
+  color: var(--text-muted);
+}
+
+.document-list article,
+.schedule-entry,
+.people-panel,
+.public-profile,
+.direct-chat form,
+.chat-composer {
+  border-color: var(--border);
+}
+
+.file-icon,
+.empty-state > span {
+  color: var(--accent);
+  background: rgba(54, 216, 255, .08);
+  box-shadow: inset 0 0 0 1px rgba(54, 216, 255, .12);
+}
+
+.status-chip {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, .05);
+}
+.status-chip.ready {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 9%, transparent);
+}
+.status-chip.failed {
+  color: color-mix(in srgb, var(--danger) 72%, white);
+  background: color-mix(in srgb, var(--danger) 11%, transparent);
+}
+
+.inline-error {
+  color: color-mix(in srgb, var(--danger) 72%, white);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.inline-success {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 16%, transparent);
+}
+
+.course-delete-confirm button,
+.delete-confirm button {
+  color: color-mix(in srgb, var(--danger) 58%, white);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+}
+.course-delete-confirm button:last-child,
+.delete-confirm button:last-child {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, .05);
+}
+
+.chat-message > div { background: rgba(54, 216, 255, .075); }
+.chat-message.student > div { background: rgba(124, 108, 255, .13); }
+.citations span { color: color-mix(in srgb, var(--accent) 62%, white); background: rgba(54, 216, 255, .075); }
+
+::selection { color: white; background: rgba(124, 108, 255, .72); }
+* { scrollbar-color: rgba(124, 108, 255, .55) rgba(255, 255, 255, .035); }

@@ -162,39 +162,52 @@ function App() {
     catch (reason) { if (removed) setStudy((current) => ({ ...current, tasks: [...current.tasks, removed] })); throw reason }
   }
 
+  const navigate = useCallback((nextView: ViewId) => {
+    if (nextView === view) return
+    const transitionDocument = document as Document & {
+      startViewTransition?: (update: () => void) => { finished: Promise<void> }
+    }
+    const reduceMotion = typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduceMotion || !transitionDocument.startViewTransition) {
+      setView(nextView)
+      return
+    }
+    transitionDocument.startViewTransition(() => setView(nextView))
+  }, [view])
+
 
   return (
     <div className="app-shell">
       <MobileSplash />
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-      <Sidebar active={view} onNavigate={setView} profile={profile} unreadMessages={unreadMessages} />
+      <Sidebar active={view} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} />
       <main className="main-content" id="main-content">
-        <Header profile={profile} onNavigate={setView} />
-        {view === 'overview' && (
-          <Overview
-            study={study}
-            onToggleTask={toggleTask}
-            onNavigate={setView}
-          />
-        )}
-        {view === 'courses' && <CoursesView />}
-        {view === 'library' && <LibraryView />}
-        {view === 'tutor' && <TutorView />}
-        {view === 'schedule' && (
-          <ScheduleView
-            tasks={study.tasks}
-            onAddTask={addTask}
-            onToggleTask={toggleTask}
-            onDeleteTask={deleteTask}
-            onOpenCourses={() => setView('courses')}
-          />
-        )}
-        {view === 'progress' && <ProgressView study={study} />}
-        {view === 'community' && <CommunityView ownId={profile?.id} onMessagesRead={refreshUnread} />}
-        {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
+        <Header profile={profile} onNavigate={navigate} />
+        <div className={`view-stage view-stage-${view}`} key={view}>
+          <span className="view-stage-glint" aria-hidden="true" />
+          {view === 'overview' && (
+            <Overview study={study} onToggleTask={toggleTask} onNavigate={navigate} />
+          )}
+          {view === 'courses' && <CoursesView />}
+          {view === 'library' && <LibraryView />}
+          {view === 'tutor' && <TutorView />}
+          {view === 'schedule' && (
+            <ScheduleView
+              tasks={study.tasks}
+              onAddTask={addTask}
+              onToggleTask={toggleTask}
+              onDeleteTask={deleteTask}
+              onOpenCourses={() => navigate('courses')}
+            />
+          )}
+          {view === 'progress' && <ProgressView study={study} />}
+          {view === 'community' && <CommunityView ownId={profile?.id} onMessagesRead={refreshUnread} />}
+          {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
+        </div>
       </main>
-      <RightRail study={study} profile={profile} onNavigate={setView} />
-      <MobileNav active={view} onNavigate={setView} unreadMessages={unreadMessages} />
+      <RightRail study={study} profile={profile} onNavigate={navigate} />
+      <MobileNav active={view} onNavigate={navigate} unreadMessages={unreadMessages} />
     </div>
   )
 }
