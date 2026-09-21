@@ -6,8 +6,9 @@ from app.config import settings
 from app.core.exceptions import AppError
 from app.core.storage import local_storage, storage
 from app.dependencies import CurrentUser, DBSession
-from app.schemas import ProfileUpdate, UserResponse
+from app.schemas import MessageResponse, PasswordChangeRequest, ProfileUpdate, UserResponse
 from app.schemas.profile import ProfileResponse
+from app.services.auth import AuthService
 from app.services.profile import ProfileService
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -28,6 +29,14 @@ async def update_profile(
     await session.refresh(user)
     await session.refresh(user, attribute_names=["university"])
     return UserResponse.model_validate(user)
+
+
+@router.post("/me/change-password", response_model=MessageResponse)
+async def change_password(
+    payload: PasswordChangeRequest, session: DBSession, user: CurrentUser
+) -> MessageResponse:
+    await AuthService(session).change_password(user, payload)
+    return MessageResponse(message="Mật khẩu đã được thay đổi. Hãy đăng nhập lại.")
 
 
 @router.post("/me/avatar", response_model=UserResponse)

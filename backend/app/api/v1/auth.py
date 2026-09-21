@@ -1,10 +1,13 @@
 from fastapi import APIRouter, status
 
+from app.config import settings
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import (
     LoginRequest,
     MessageResponse,
     RefreshRequest,
+    RegistrationChallengeResponse,
+    RegistrationVerifyRequest,
     TokenPair,
     UserCreate,
     UserResponse,
@@ -14,9 +17,37 @@ from app.services.auth import AuthService
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, session: DBSession) -> UserResponse:
-    return UserResponse.model_validate(await AuthService(session).register(payload))
+def _mask_email(email: str) -> str:
+    local, domain = email.split("@", 1)
+    shown = local[:2] if len(local) > 2 else local[:1]
+    return f"{shown}{'*' * max(2, len(local) - len(shown))}@{domain}"
+
+
+@router.post(
+    "/register",
+    response_model=RegistrationChallengeResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def register(payload: UserCreate, session: DBSession) -> RegistrationChallengeResponse:
+    challenge, debug_otp = await AuthService(session).request_registration(payload)
+    return RegistrationChallengeResponse(
+        challenge_id=challenge.id,
+        masked_email=_mask_email(challenge.email),
+        expires_in=settings.registration_otp_expire_minutes * 60,
+        debug_otp=debug_otp,
+    )
+
+
+@router.post(
+    "/register/verify",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def verify_registration(
+    payload: RegistrationVerifyRequest, session: DBSession
+) -> UserResponse:
+    user = await AuthService(session).verify_registration(payload.challenge_id, payload.otp)
+    return UserResponse.model_validate(user)
 
 
 @router.post("/login", response_model=TokenPair)

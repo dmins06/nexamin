@@ -36,6 +36,7 @@ class CourseCreate(BaseModel):
     university_id: uuid.UUID | None = None
     semester: str | None = Field(default=None, max_length=50)
     academic_year: str | None = Field(default=None, max_length=20)
+    credits: int = Field(default=3, ge=1, le=30)
     color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     icon: str | None = Field(default=None, max_length=80)
     visibility: Visibility = Visibility.PRIVATE
@@ -47,6 +48,9 @@ class CourseUpdate(BaseModel):
     description: str | None = None
     semester: str | None = None
     academic_year: str | None = None
+    credits: int | None = Field(default=None, ge=1, le=30)
+    final_score: float | None = Field(default=None, ge=0, le=10)
+    is_completed: bool | None = None
     color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
     icon: str | None = None
     visibility: Visibility | None = None
@@ -61,6 +65,10 @@ class CourseResponse(ORMModel):
     description: str | None
     semester: str | None
     academic_year: str | None
+    credits: int
+    final_score: float | None
+    is_completed: bool
+    completed_at: datetime | None
     color: str | None
     icon: str | None
     visibility: Visibility
@@ -250,3 +258,35 @@ class GeneratedQuestion(BaseModel):
 class GeneratedQuiz(BaseModel):
     title: str
     questions: list[GeneratedQuestion]
+
+
+class GradeBandResponse(BaseModel):
+    minimum: float
+    letter: str
+    points: float
+
+
+class GradingPolicyResponse(BaseModel):
+    id: str
+    name: str
+    source_url: str
+    is_school_specific: bool
+    bands: list[GradeBandResponse]
+
+
+class CourseGradeResponse(BaseModel):
+    course_id: uuid.UUID
+    score10: float
+    grade4: float
+    letter: str
+    passed: bool
+    credits: int
+
+
+class AcademicSummaryResponse(BaseModel):
+    policy: GradingPolicyResponse
+    gpa: float | None
+    completed_credits: int
+    graded_credits: int
+    degree_classification: str
+    grades: list[CourseGradeResponse]

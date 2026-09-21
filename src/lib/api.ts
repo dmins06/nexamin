@@ -17,6 +17,13 @@ interface Page<T> {
   total: number
 }
 
+export interface RegistrationChallenge {
+  challenge_id: string
+  masked_email: string
+  expires_in: number
+  debug_otp: string | null
+}
+
 interface TokenPair {
   access_token: string
   refresh_token: string
@@ -106,8 +113,18 @@ export async function register(payload: {
   major?: string
   student_year?: number
 }) {
-  await request('/auth/register', { method: 'POST', body: JSON.stringify(payload) })
-  return login(payload.email, payload.password)
+  return request<RegistrationChallenge>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function verifyRegistration(challengeId: string, otp: string, email: string, password: string) {
+  await request("/auth/register/verify", {
+    method: "POST",
+    body: JSON.stringify({ challenge_id: challengeId, otp }),
+  })
+  return login(email, password)
 }
 
 export async function logout() {

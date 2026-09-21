@@ -19,13 +19,15 @@ import {
 import { initialStudyState } from './data'
 import { formatVietnameseDate } from './lib/format'
 import { BrandLogo } from './components/BrandLogo'
-import { AmbientOrbit } from './components/AmbientOrbit'
 import { MobileSplash } from './components/MobileSplash'
+import { CosmicBackdrop } from './components/CosmicBackdrop'
 import { logout } from './lib/api'
 import { type CalendarEvent, type UserProfile, workspaceApi } from './lib/workspaceApi'
-import { CoursesView, LibraryView, TutorView } from './features/workspace/WorkspaceViews'
+import { LibraryView, TutorView } from "./features/workspace/WorkspaceViews"
+import { CoursesView } from "./features/workspace/AcademicCoursesView"
 import { ScheduleView } from './features/schedule/ScheduleView'
-import { CommunityView, ProfileView } from './features/social/SocialViews'
+import { CommunityView, ProfileView } from "./features/social/SocialViews"
+import { SettingsView } from "./features/settings/SettingsView"
 import { loadStudyState, saveStudyState } from './lib/storage'
 import type { StudyState, StudyTask, ViewId } from './types'
 
@@ -179,6 +181,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <CosmicBackdrop />
       <MobileSplash />
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
       <Sidebar active={view} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} />
@@ -204,6 +207,7 @@ function App() {
           {view === 'progress' && <ProgressView study={study} />}
           {view === 'community' && <CommunityView ownId={profile?.id} onMessagesRead={refreshUnread} />}
           {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
+          {view === 'settings' && <SettingsView />}
         </div>
       </main>
       <RightRail study={study} profile={profile} onNavigate={navigate} />
@@ -217,12 +221,12 @@ interface NavigationProps {
   onNavigate: (view: ViewId) => void
 }
 
-function Brand() {
+function Brand({ onHome }: { onHome: () => void }) {
   return (
-    <div className="brand" aria-label="StudyHubAI">
-<span className="brand-logo"><BrandLogo /></span>
+    <button className="brand" type="button" onClick={onHome} aria-label="Về Trang chủ StudyHubAI">
+      <span className="brand-logo"><BrandLogo /></span>
       <span className="brand-name">StudyHub<span>AI</span></span>
-    </div>
+    </button>
   )
 }
 
@@ -231,7 +235,7 @@ function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProp
   const initials = displayName.split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase()
   return (
     <aside className="sidebar">
-      <Brand />
+      <Brand onHome={() => onNavigate('overview')} />
       <nav aria-label="Điều hướng chính">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -255,7 +259,7 @@ function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProp
       </div>
       <div className="student-chip">
         <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
-        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('profile')}><Settings size={16} /></button><button className="logout-button" aria-label="Đăng xuất" title="Đăng xuất" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={16} /></button>
+        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('settings')}><Settings size={16} /></button><button className="logout-button" aria-label="Đăng xuất" title="Đăng xuất" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={16} /></button>
       </div>
     </aside>
   )
@@ -299,9 +303,9 @@ function RightRail({ study, profile, onNavigate }: { study: StudyState; profile:
 function Header({ profile, onNavigate }: { profile: UserProfile | null; onNavigate: (view: ViewId) => void }) {
   const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? 'bạn'
   return <header className="topbar">
-    <div className="mobile-brand"><Brand /></div>
+    <div className="mobile-brand"><Brand onHome={() => onNavigate('overview')} /></div>
     <div className="topbar-copy"><p className="today">{formatVietnameseDate()}</p><h1>Chào bạn, {firstName}</h1></div>
-    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => onNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => onNavigate('library')}><Files size={17} />Tài liệu</button><button onClick={() => onNavigate('progress')}><Sparkles size={17} />Tiến độ</button><button onClick={() => onNavigate('community')}><Users size={17} />Cộng đồng</button></div></details>
+    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => onNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => onNavigate('library')}><Files size={17} />Tài liệu</button><button onClick={() => onNavigate('progress')}><Sparkles size={17} />Tiến độ</button><button onClick={() => onNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => onNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
     <div className="header-signal" aria-hidden="true"><span /><span /></div>
   </header>
 }
@@ -328,7 +332,7 @@ function Overview({ study, onToggleTask, onNavigate }: OverviewProps) {
           <button className="secondary-action" type="button" onClick={() => onNavigate('tutor')}>Khám phá tính năng</button>
         </div>
       </div>
-      <AmbientOrbit />
+      <div className="hero-earth-window" aria-hidden="true"><span /><span /></div>
     </section>
     <section className="task-ledger" aria-labelledby="today-title">
       <div className="section-heading ledger-heading"><div><h2 id="today-title">Hôm nay</h2><p>{completed}/{todayTasks.length} việc đã hoàn thành</p></div><button className="text-button" onClick={() => onNavigate('schedule')}>Xem lịch học <ChevronRight size={16} /></button></div>

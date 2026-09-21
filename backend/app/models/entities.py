@@ -148,6 +148,18 @@ class RefreshToken(UUIDMixin, Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class RegistrationChallenge(UUIDMixin, Base):
+    __tablename__ = "registration_challenges"
+
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    code_hash: Mapped[str] = mapped_column(String(64))
+    registration_data: Mapped[dict[str, Any]] = mapped_column(JSON)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Course(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "courses"
     __table_args__ = (Index("ix_courses_owner_name", "owner_id", "name"),)
@@ -161,6 +173,10 @@ class Course(UUIDMixin, TimestampMixin, Base):
     description: Mapped[str | None] = mapped_column(Text)
     semester: Mapped[str | None] = mapped_column(String(50))
     academic_year: Mapped[str | None] = mapped_column(String(20))
+    credits: Mapped[int] = mapped_column(Integer, default=3)
+    final_score: Mapped[float | None] = mapped_column(Float)
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     color: Mapped[str | None] = mapped_column(String(20))
     icon: Mapped[str | None] = mapped_column(String(80))
     visibility: Mapped[Visibility] = mapped_column(
@@ -377,9 +393,15 @@ class Friendship(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "friendships"
     __table_args__ = (UniqueConstraint("user_a_id", "user_b_id"),)
 
-    user_a_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    user_b_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    requested_by_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    user_a_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    user_b_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    requested_by_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
     status: Mapped[FriendshipStatus] = mapped_column(
         Enum(FriendshipStatus, native_enum=False), default=FriendshipStatus.PENDING, index=True
     )

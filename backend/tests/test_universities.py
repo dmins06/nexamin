@@ -32,7 +32,7 @@ async def test_registration_persists_selected_university(session) -> None:
     )
     session.add(university)
     await session.commit()
-    user = await AuthService(session).register(
+    challenge, otp = await AuthService(session).request_registration(
         UserCreate(
             email="learner@example.edu",
             password="StrongPass123",
@@ -40,6 +40,8 @@ async def test_registration_persists_selected_university(session) -> None:
             university_id=university.id,
         )
     )
+    assert otp is not None
+    user = await AuthService(session).verify_registration(challenge.id, otp)
     stored = await session.scalar(select(University).where(University.id == user.university_id))
     assert stored is not None
     assert stored.official_code == "TST"

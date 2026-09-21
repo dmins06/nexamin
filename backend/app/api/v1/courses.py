@@ -3,8 +3,17 @@ import uuid
 from fastapi import APIRouter, Query, Response, status
 
 from app.dependencies import CurrentUser, DBSession
-from app.schemas import CourseCreate, CourseResponse, CourseUpdate, Page, TopicCreate, TopicResponse
+from app.schemas import (
+    AcademicSummaryResponse,
+    CourseCreate,
+    CourseResponse,
+    CourseUpdate,
+    Page,
+    TopicCreate,
+    TopicResponse,
+)
 from app.services.courses import CourseService
+from app.services.grading import academic_summary
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
@@ -30,6 +39,11 @@ async def list_courses(
         page_size=page_size,
         total=total,
     )
+
+
+@router.get("/summary/academic", response_model=AcademicSummaryResponse)
+async def get_academic_summary(session: DBSession, user: CurrentUser) -> AcademicSummaryResponse:
+    return AcademicSummaryResponse.model_validate(await academic_summary(session, user))
 
 
 @router.get("/{course_id}", response_model=CourseResponse)

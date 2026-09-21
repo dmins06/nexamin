@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, model_validator
 
 from app.models.entities import Role
 from app.schemas.common import ORMModel
@@ -22,6 +22,29 @@ class UserCreate(BaseModel):
     university_id: uuid.UUID | None = None
     major: str | None = Field(default=None, max_length=300)
     student_year: int | None = Field(default=None, ge=1, le=10)
+
+
+class RegistrationChallengeResponse(BaseModel):
+    challenge_id: uuid.UUID
+    masked_email: str
+    expires_in: int
+    debug_otp: str | None = None
+
+
+class RegistrationVerifyRequest(BaseModel):
+    challenge_id: uuid.UUID
+    otp: str = Field(pattern=r"^\d{6}$")
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=6, max_length=128)
+
+    @model_validator(mode="after")
+    def validate_difference(self) -> "PasswordChangeRequest":
+        if self.current_password == self.new_password:
+            raise ValueError("Mật khẩu mới phải khác mật khẩu hiện tại")
+        return self
 
 
 class LoginRequest(BaseModel):

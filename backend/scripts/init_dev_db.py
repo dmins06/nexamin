@@ -5,7 +5,7 @@ import csv
 import uuid
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
 
 from app.config import settings
 from app.database import Base, SessionFactory, engine
@@ -18,6 +18,25 @@ async def initialize() -> None:
 
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+
+        # Local SQLite predates Alembic in this project. Reconcile only additive
+        # columns here; PostgreSQL production remains governed by Alembic.
+        columns = await connection.run_sync(
+            lambda sync_connection: {
+                item["name"] for item in inspect(sync_connection).get_columns("courses")
+            }
+        )
+        additions = {
+            "credits": "INTEGER NOT NULL DEFAULT 3",
+            "final_score": "FLOAT",
+            "is_completed": "BOOLEAN NOT NULL DEFAULT 0",
+            "completed_at": "DATETIME",
+        }
+        for name, definition in additions.items():
+            if name not in columns:
+                await connection.execute(
+                    text(f"ALTER TABLE courses ADD COLUMN {name} {definition}")
+                )
 
     async with SessionFactory() as session:
         existing_codes = set(

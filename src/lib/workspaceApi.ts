@@ -9,8 +9,21 @@ export interface Course {
   description: string | null
   semester: string | null
   academic_year: string | null
+  credits: number
+  final_score: number | null
+  is_completed: boolean
+  completed_at: string | null
   color: string | null
   visibility: 'private' | 'university' | 'public'
+}
+
+export interface AcademicSummary {
+  policy: { id: string; name: string; source_url: string; is_school_specific: boolean; bands: Array<{ minimum: number; letter: string; points: number }> }
+  gpa: number | null
+  completed_credits: number
+  graded_credits: number
+  degree_classification: string
+  grades: Array<{ course_id: string; score10: number; grade4: number; letter: string; passed: boolean; credits: number }>
 }
 
 export interface StudyDocument {
@@ -170,15 +183,20 @@ export const workspaceApi = {
   fullProfile: () => authorized<UserProfile>('/users/me'),
   updateProfile: (payload: { full_name?: string; student_year?: number | null; bio?: string | null }) =>
     authorized<UserProfile>('/users/me', { method: 'PATCH', body: JSON.stringify(payload) }),
+  changePassword: (payload: { current_password: string; new_password: string }) =>
+    authorized<{ message: string }>("/users/me/change-password", { method: "POST", body: JSON.stringify(payload) }),
   uploadAvatar: (file: File) => {
     const form = new FormData()
     form.set('avatar', file)
     return authorized<UserProfile>('/users/me/avatar', { method: 'POST', body: form })
   },
   courses: () => authorized<Page<Course>>('/courses?page=1&page_size=100'),
-  createCourse: (payload: { name: string; code?: string; semester?: string; color?: string }) =>
+  createCourse: (payload: { name: string; code?: string; semester?: string; color?: string; credits?: number }) =>
     authorized<Course>('/courses', { method: 'POST', body: JSON.stringify(payload) }),
-  deleteCourse: (id: string) => authorized<void>(`/courses/${id}`, { method: 'DELETE' }),
+  updateCourse: (id: string, payload: { credits?: number; final_score?: number | null; is_completed?: boolean }) =>
+    authorized<Course>(`/courses/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  academicSummary: () => authorized<AcademicSummary>("/courses/summary/academic"),
+  deleteCourse: (id: string) => authorized<void>(`/courses/${id}`, { method: "DELETE" }),
   documents: () => authorized<Page<StudyDocument>>('/documents?page=1&page_size=100'),
   uploadDocument: (courseId: string, file: File) => {
     const form = new FormData()

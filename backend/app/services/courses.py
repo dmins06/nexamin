@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -47,7 +48,10 @@ class CourseService:
 
     async def update(self, course_id: uuid.UUID, payload: CourseUpdate) -> Course:
         course = await self.get(course_id)
-        for field, value in payload.model_dump(exclude_unset=True).items():
+        changes = payload.model_dump(exclude_unset=True)
+        if "is_completed" in changes:
+            course.completed_at = datetime.now(UTC) if changes["is_completed"] else None
+        for field, value in changes.items():
             setattr(course, field, value)
         await self.session.commit()
         await self.session.refresh(course)

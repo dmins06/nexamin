@@ -9,7 +9,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.schemas import LoginRequest, UserCreate
+from app.schemas import LoginRequest, PasswordChangeRequest, UserCreate
 from app.services.auth import AuthService
 
 
@@ -25,15 +25,26 @@ def test_password_hash_and_access_token() -> None:
 @pytest.mark.asyncio
 async def test_register_login_and_refresh_rotation(session) -> None:
     service = AuthService(session)
-    user = await service.register(
+    challenge, otp = await service.request_registration(
         UserCreate(email="student@example.edu", password="StrongPass123", full_name="Student")
     )
+    assert otp is not None
+    user = await service.verify_registration(challenge.id, otp)
+    assert user.is_verified
     pair = await service.login(LoginRequest(email=user.email, password="StrongPass123"))
     rotated = await service.refresh(pair.refresh_token)
     assert rotated.refresh_token != pair.refresh_token
     with pytest.raises(AppError) as reused:
         await service.refresh(pair.refresh_token)
     assert reused.value.code == "INVALID_REFRESH_TOKEN"
+
+    await service.change_password(
+        user, PasswordChangeRequest(current_password="StrongPass123", new_password="NewPass456")
+    )
+    with pytest.raises(AppError) as old_password:
+        await service.login(LoginRequest(email=user.email, password="StrongPass123"))
+    assert old_password.value.code == "INVALID_CREDENTIALS"
+    await service.login(LoginRequest(email=user.email, password="NewPass456"))
 
 
 def test_expired_access_token_rejected(monkeypatch) -> None:
