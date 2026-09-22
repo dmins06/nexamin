@@ -26,6 +26,34 @@ class AuthService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
+    async def register_user(self, payload: UserCreate) -> TokenPair:
+        email = payload.email.lower()
+        if await self.session.scalar(select(User.id).where(User.email == email)):
+            raise AppError("EMAIL_EXISTS", "Email này đã được sử dụng", 409)
+        if (
+            payload.university_id is not None
+            and await self.session.get(University, payload.university_id) is None
+        ):
+            raise AppError(
+                "UNIVERSITY_NOT_FOUND",
+                "Không tìm thấy trường đại học đã chọn. Hãy tải lại danh sách trường.",
+                422,
+            )
+
+        user = User(
+            email=email,
+            password_hash=hash_password(payload.password),
+            full_name=payload.full_name,
+            university_id=payload.university_id,
+            major=payload.major,
+            student_year=payload.student_year,
+            is_verified=True,
+        )
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user, attribute_names=["university"])
+        return await self._issue_pair(user)
+
     async def request_registration(
         self, payload: UserCreate
     ) -> tuple[RegistrationChallenge, str | None]:
@@ -81,6 +109,11 @@ class AuthService:
             else None
         )
         return challenge, debug_otp
+
+    async def resend_registration(
+        self, payload: UserCreate
+    ) -> tuple[RegistrationChallenge, str | None]:
+        return await self.request_registration(payload)
 
     async def verify_registration(self, challenge_id: uuid.UUID, otp: str) -> User:
         challenge = await self.session.scalar(

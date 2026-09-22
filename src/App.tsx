@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
   Menu,
+  MessageCircle,
   X,
   Sparkles,
   Users,
@@ -26,7 +27,7 @@ import { type CalendarEvent, type UserProfile, workspaceApi } from './lib/worksp
 import { LibraryView, TutorView } from "./features/workspace/WorkspaceViews"
 import { CoursesView } from "./features/workspace/AcademicCoursesView"
 import { ScheduleView } from './features/schedule/ScheduleView'
-import { CommunityView, ProfileView } from "./features/social/SocialViews"
+import { CommunityFeedView, MessagesView, ProfileView } from "./features/social/SocialViews"
 import { SettingsView } from "./features/settings/SettingsView"
 import { loadStudyState, saveStudyState } from './lib/storage'
 import type { StudyState, StudyTask, ViewId } from './types'
@@ -38,14 +39,15 @@ const navItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
   { id: 'tutor', label: 'EminAI', icon: Bot },
   { id: 'library', label: 'Tài liệu', icon: Files },
   { id: 'community', label: 'Cộng đồng', icon: Users },
+  { id: 'messages', label: 'Tin nhắn', icon: MessageCircle },
 ]
 
 const mobileNavItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
   { id: 'overview', label: 'Trang chủ', icon: Home },
   { id: 'courses', label: 'Môn học', icon: GraduationCap },
   { id: 'tutor', label: 'EminAI', icon: Bot },
-  { id: 'community', label: 'Thông báo', icon: Users },
-  { id: 'profile', label: 'Hồ sơ', icon: UserRound },
+  { id: 'community', label: 'Cộng đồng', icon: Users },
+  { id: 'messages', label: 'Tin nhắn', icon: MessageCircle },
 ]
 
 
@@ -90,6 +92,7 @@ function App() {
   )
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [friendRequestCount, setFriendRequestCount] = useState(0)
   const initialTasks = useRef(study.tasks)
 
   useEffect(() => saveStudyState(study), [study])
@@ -108,16 +111,26 @@ function App() {
       setStudy((current) => ({ ...current, tasks: migrated.filter((task): task is StudyTask => task !== null) }))
     }).catch(() => undefined)
   }, []) // Migrate version-2 local schedules once when the server calendar is empty.
-  const refreshUnread = useCallback(() => {
-    void workspaceApi.unreadMessages().then((summary) => setUnreadMessages(summary.total)).catch(() => undefined)
+  const refreshSocialIndicators = useCallback(() => {
+    void Promise.all([
+      workspaceApi.unreadMessages().catch(() => ({ total: 0, by_sender: {} })),
+      workspaceApi.friendships().catch(() => []),
+    ]).then(([summary, friendships]) => {
+      const list = Array.isArray(friendships) ? friendships : []
+      setUnreadMessages(typeof summary?.total === 'number' ? summary.total : 0)
+      setFriendRequestCount(list.filter((item) => item.status === 'pending' && item.request_incoming).length)
+    }).catch(() => {
+      setUnreadMessages(0)
+      setFriendRequestCount(0)
+    })
   }, [])
   useEffect(() => {
-    refreshUnread()
-    const timer = window.setInterval(refreshUnread, 15_000)
-    const onVisible = () => { if (document.visibilityState === 'visible') refreshUnread() }
+    refreshSocialIndicators()
+    const timer = window.setInterval(refreshSocialIndicators, 15_000)
+    const onVisible = () => { if (document.visibilityState === 'visible') refreshSocialIndicators() }
     document.addEventListener('visibilitychange', onVisible)
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', onVisible) }
-  }, [refreshUnread])
+  }, [refreshSocialIndicators])
 
   useEffect(() => {
     let stopped = false
@@ -125,7 +138,7 @@ function App() {
     let reconnect: number | undefined
     const connect = () => {
       socket = workspaceApi.realtime((event) => {
-        refreshUnread()
+        refreshSocialIndicators()
         window.dispatchEvent(new CustomEvent('studyhub:message', { detail: event.message }))
       })
       socket?.addEventListener('close', () => {
@@ -134,7 +147,7 @@ function App() {
     }
     connect()
     return () => { stopped = true; if (reconnect) window.clearTimeout(reconnect); socket?.close() }
-  }, [refreshUnread])
+  }, [refreshSocialIndicators])
 
 
   const toggleTask = async (taskId: string) => {
@@ -184,7 +197,7 @@ function App() {
       <CosmicBackdrop />
       <MobileSplash />
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-      <Sidebar active={view} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} />
+      <Sidebar active={view} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
       <main className="main-content" id="main-content">
         <Header profile={profile} onNavigate={navigate} />
         <div className={`view-stage view-stage-${view}`} key={view}>
@@ -205,13 +218,14 @@ function App() {
             />
           )}
           {view === 'progress' && <ProgressView study={study} />}
-          {view === 'community' && <CommunityView ownId={profile?.id} onMessagesRead={refreshUnread} />}
+          {view === 'community' && <CommunityFeedView profile={profile} />}
+          {view === 'messages' && <MessagesView ownId={profile?.id} onMessagesRead={refreshSocialIndicators} />}
           {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
           {view === 'settings' && <SettingsView />}
         </div>
       </main>
       <RightRail study={study} profile={profile} onNavigate={navigate} />
-      <MobileNav active={view} onNavigate={navigate} unreadMessages={unreadMessages} />
+      <MobileNav active={view} onNavigate={navigate} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
     </div>
   )
 }
@@ -230,7 +244,7 @@ function Brand({ onHome }: { onHome: () => void }) {
   )
 }
 
-function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProps & { profile: UserProfile | null; unreadMessages: number }) {
+function Sidebar({ active, onNavigate, profile, unreadMessages, friendRequestCount }: NavigationProps & { profile: UserProfile | null; unreadMessages: number; friendRequestCount: number }) {
   const displayName = profile?.full_name ?? "Sinh viên"
   const initials = displayName.split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase()
   return (
@@ -248,7 +262,8 @@ function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProp
             >
               <Icon size={19} strokeWidth={1.8} />
               <span>{item.label}</span>
-              {item.id === 'community' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
+              {item.id === 'messages' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
+              {item.id === 'community' && friendRequestCount > 0 && <span className="nav-unread-dot" aria-label="Có lời mời kết bạn mới" />}
             </button>
           )
         })}
@@ -265,7 +280,7 @@ function Sidebar({ active, onNavigate, profile, unreadMessages }: NavigationProp
   )
 }
 
-function MobileNav({ active, onNavigate, unreadMessages }: NavigationProps & { unreadMessages: number }) {
+function MobileNav({ active, onNavigate, unreadMessages, friendRequestCount }: NavigationProps & { unreadMessages: number; friendRequestCount: number }) {
   return (
     <nav className="mobile-nav" aria-label="Điều hướng di động">
       {mobileNavItems.map((item) => {
@@ -280,7 +295,8 @@ function MobileNav({ active, onNavigate, unreadMessages }: NavigationProps & { u
           >
             <Icon size={20} />
             <span>{item.label}</span>
-              {item.id === 'community' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
+              {item.id === 'messages' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
+              {item.id === 'community' && friendRequestCount > 0 && <span className="nav-unread-dot" aria-label="Có lời mời kết bạn mới" />}
           </button>
         )
       })}
@@ -305,7 +321,7 @@ function Header({ profile, onNavigate }: { profile: UserProfile | null; onNaviga
   return <header className="topbar">
     <div className="mobile-brand"><Brand onHome={() => onNavigate('overview')} /></div>
     <div className="topbar-copy"><p className="today">{formatVietnameseDate()}</p><h1>Chào bạn, {firstName}</h1></div>
-    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => onNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => onNavigate('library')}><Files size={17} />Tài liệu</button><button onClick={() => onNavigate('progress')}><Sparkles size={17} />Tiến độ</button><button onClick={() => onNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => onNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
+    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => onNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => onNavigate('library')}><Files size={17} />Tài liệu</button><button onClick={() => onNavigate('progress')}><Sparkles size={17} />Tiến độ</button><button onClick={() => onNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => onNavigate('messages')}><MessageCircle size={17} />Tin nhắn</button><button onClick={() => onNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
     <div className="header-signal" aria-hidden="true"><span /><span /></div>
   </header>
 }

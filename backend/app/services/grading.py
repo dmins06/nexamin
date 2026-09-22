@@ -27,8 +27,11 @@ MOET = GradingPolicy(
     source_url="https://vanban.chinhphu.vn/default.aspx?docid=203159&pageid=27160",
     bands=(
         GradeBand(8.5, "A", 4.0),
+        GradeBand(8.0, "B+", 3.5),
         GradeBand(7.0, "B", 3.0),
+        GradeBand(6.5, "C+", 2.5),
         GradeBand(5.5, "C", 2.0),
+        GradeBand(5.0, "D+", 1.5),
         GradeBand(4.0, "D", 1.0),
         GradeBand(0.0, "F", 0.0),
     ),

@@ -25,16 +25,24 @@ def _mask_email(email: str) -> str:
 
 @router.post(
     "/register",
+    response_model=TokenPair,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register(payload: UserCreate, session: DBSession) -> TokenPair:
+    return await AuthService(session).register_user(payload)
+
+
+@router.post(
+    "/register/resend",
     response_model=RegistrationChallengeResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def register(payload: UserCreate, session: DBSession) -> RegistrationChallengeResponse:
-    challenge, debug_otp = await AuthService(session).request_registration(payload)
+async def resend_registration(payload: UserCreate, session: DBSession) -> RegistrationChallengeResponse:
+    challenge, _ = await AuthService(session).resend_registration(payload)
     return RegistrationChallengeResponse(
         challenge_id=challenge.id,
         masked_email=_mask_email(challenge.email),
         expires_in=settings.registration_otp_expire_minutes * 60,
-        debug_otp=debug_otp,
     )
 
 

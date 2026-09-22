@@ -86,6 +86,46 @@ export interface DirectMessage {
   read_at: string | null
 }
 
+export interface MessageAttachment {
+  url: string
+  name: string
+  mime_type: string
+}
+
+export function serializeMessageContent(content: string, attachment?: MessageAttachment | null) {
+  const text = content.trim()
+  if (!attachment) return text
+  return JSON.stringify({
+    text,
+    attachment: {
+      url: attachment.url,
+      name: attachment.name,
+      mime_type: attachment.mime_type,
+    },
+  })
+}
+
+export function parseMessageContent(raw: string) {
+  const fallback = { text: raw, attachment: null as MessageAttachment | null }
+  if (!raw) return fallback
+  try {
+    const parsed = JSON.parse(raw) as { text?: string; attachment?: Partial<MessageAttachment> }
+    if (!parsed || typeof parsed !== 'object' || !parsed.attachment || typeof parsed.attachment.url !== 'string') {
+      return fallback
+    }
+    return {
+      text: typeof parsed.text === 'string' ? parsed.text : '',
+      attachment: {
+        url: parsed.attachment.url,
+        name: parsed.attachment.name ?? 'Tệp đính kèm',
+        mime_type: parsed.attachment.mime_type ?? 'application/octet-stream',
+      },
+    }
+  } catch {
+    return fallback
+  }
+}
+
 export interface CalendarEvent {
   id: string
   course_id: string | null
@@ -215,7 +255,16 @@ export const workspaceApi = {
   publicProfile: (userId: string) => authorized<PublicProfile>(`/social/profiles/${userId}`),
   messages: (userId: string) => authorized<DirectMessage[]>(`/social/messages/${userId}`),
   unreadMessages: () => authorized<{ total: number; by_sender: Record<string, number> }>("/social/messages/unread"),
-  sendMessage: (userId: string, content: string) => authorized<DirectMessage>(`/social/messages/${userId}`, { method: 'POST', body: JSON.stringify({ content }) }),
+  sendMessage: (userId: string, content: string, attachment?: MessageAttachment | null) =>
+    authorized<DirectMessage>(`/social/messages/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({ content: serializeMessageContent(content, attachment) }),
+    }),
+  uploadMessageAttachment: (file: File) => {
+    const form = new FormData()
+    form.set('file', file)
+    return authorized<MessageAttachment>('/social/messages/upload', { method: 'POST', body: form })
+  },
   calendar: () => authorized<CalendarEvent[]>('/calendar'),
   createCalendarEvent: (payload: Omit<CalendarEvent, 'id' | 'created_at'>) =>
     authorized<CalendarEvent>('/calendar/events', { method: 'POST', body: JSON.stringify(payload) }),

@@ -28,7 +28,6 @@ class RegistrationChallengeResponse(BaseModel):
     challenge_id: uuid.UUID
     masked_email: str
     expires_in: int
-    debug_otp: str | None = None
 
 
 class RegistrationVerifyRequest(BaseModel):

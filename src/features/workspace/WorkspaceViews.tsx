@@ -38,17 +38,20 @@ export function CoursesView() {
 
   async function createCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const data = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const data = new FormData(form)
+    const payload = {
+      name: String(data.get('name') ?? '').trim(),
+      code: String(data.get('code') || '') || undefined,
+      semester: String(data.get('semester') || '') || undefined,
+      color: String(data.get('color') || '#315c45'),
+    }
     setCreating(true)
     setFormError('')
     try {
-      await workspaceApi.createCourse({
-        name: String(data.get('name')),
-        code: String(data.get('code') || '') || undefined,
-        semester: String(data.get('semester') || '') || undefined,
-        color: String(data.get('color')),
-      })
-      event.currentTarget.reset()
+      const created = await workspaceApi.createCourse(payload)
+      setCourses((current) => [created, ...current.filter((course) => course.id !== created.id)])
+      if (form && typeof form.reset === 'function') form.reset()
       setFormOpen(false)
       reload()
     } catch (reason) {

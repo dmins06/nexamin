@@ -21,7 +21,15 @@ export interface RegistrationChallenge {
   challenge_id: string
   masked_email: string
   expires_in: number
-  debug_otp: string | null
+}
+
+export interface RegistrationPayload {
+  email: string
+  password: string
+  full_name: string
+  university_id: string
+  major?: string
+  student_year?: number
 }
 
 interface TokenPair {
@@ -105,15 +113,21 @@ export async function login(email: string, password: string) {
   return tokens
 }
 
-export async function register(payload: {
-  email: string
-  password: string
-  full_name: string
-  university_id: string
-  major?: string
-  student_year?: number
-}) {
-  return request<RegistrationChallenge>("/auth/register", {
+export async function register(payload: RegistrationPayload) {
+  const result = await request<TokenPair | RegistrationChallenge>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+
+  if ('access_token' in result && 'refresh_token' in result) {
+    setSession(result)
+  }
+
+  return result
+}
+
+export async function resendRegistration(payload: RegistrationPayload) {
+  return request<RegistrationChallenge>("/auth/register/resend", {
     method: "POST",
     body: JSON.stringify(payload),
   })

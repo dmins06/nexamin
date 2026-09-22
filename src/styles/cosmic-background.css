@@ -11,7 +11,7 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  background: var(--bg);
+  background: transparent;
 }
 
 .cosmic-earth {
@@ -20,8 +20,9 @@
   background-image: url('/earth-observatory.webp');
   background-size: cover;
   background-position: 64% 42%;
-  opacity: .58;
-  transform: scale(1.07) translate3d(-1.2%, 0, 0);
+  background-repeat: no-repeat;
+  opacity: .78;
+  transform: scale(1.08) translate3d(-1.2%, 0, 0);
   filter: saturate(.9) contrast(1.06);
   animation: earth-drift 24s ease-in-out infinite alternate;
   will-change: transform;

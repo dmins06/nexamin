@@ -1,8 +1,10 @@
 import { Camera, Check, LoaderCircle, MessageCircle, Pencil, Save, Search, Send, UserPlus, UserRound, X } from 'lucide-react'
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react'
 import {
+  parseMessageContent,
   type DirectMessage,
   type Friendship,
+  type MessageAttachment,
   type PublicProfile,
   type UserProfile,
   workspaceApi,
@@ -102,11 +104,88 @@ export function ProfileView({ onProfileChange }: { onProfileChange?: (profile: U
   </section>
 }
 
-export function CommunityView({ ownId, onMessagesRead }: { ownId: string | undefined; onMessagesRead: () => void }) {
+export function CommunityFeedView({ profile }: { profile: UserProfile | null }) {
+  const [post, setPost] = useState('')
+  const [posts, setPosts] = useState<Array<{ id: string; author: string; content: string; time: string; avatar: string | null }>>([])
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const next = post.trim()
+    if (!next) return
+    setPosts((current) => [{
+      id: `post-${Date.now()}`,
+      author: profile?.full_name ?? 'Bạn',
+      content: next,
+      time: 'Vừa xong',
+      avatar: profile?.avatar_url ?? null,
+    }, ...current])
+    setPost('')
+  }
+
+  return <section className="community-page" aria-labelledby="community-feed-title">
+    <div className="community-heading">
+      <div>
+        <h2 id="community-feed-title">Cộng đồng</h2>
+        <p>Xem hồ sơ, cập nhật trạng thái và chia sẻ những điều bạn đang học trong cộng đồng.</p>
+      </div>
+    </div>
+
+    <div className="community-layout">
+      <aside className="people-panel" aria-label="Hồ sơ cộng đồng">
+        <div className="public-profile" style={{ border: 0, padding: 0 }}>
+          <Avatar profile={profile ?? { full_name: 'Bạn', avatar_url: null }} />
+          <div>
+            <h3>{profile?.full_name ?? 'Bạn'}</h3>
+            <p>{profile?.university?.name ?? 'Chưa cập nhật trường'}</p>
+            <span>{profile?.major ?? 'Chưa cập nhật ngành học'}</span>
+          </div>
+        </div>
+      </aside>
+
+      <div className="social-detail">
+        <div className="social-post-composer">
+          <form onSubmit={submit} className="social-post-form">
+            <textarea
+              aria-label="Viết bài đăng mới"
+              value={post}
+              onChange={(event) => setPost(event.target.value)}
+              rows={4}
+              maxLength={500}
+              placeholder="Bạn đang học gì hôm nay?"
+            />
+            <div className="social-post-actions">
+              <span>{post.trim().length}/500</span>
+              <button className="primary-action" type="submit" disabled={!post.trim()}>Đăng bài</button>
+            </div>
+          </form>
+        </div>
+
+        <div className="message-thread social-feed-list">
+          {posts.map((entry) => (
+            <article className="social-post-card" key={entry.id}>
+              <div className="social-post-header">
+                {entry.avatar ? <img className="social-avatar" src={entry.avatar} alt="" /> : <span className="social-avatar fallback" aria-hidden="true">{initials(entry.author)}</span>}
+                <div>
+                  <strong>{entry.author}</strong>
+                  <small>{entry.time}</small>
+                </div>
+              </div>
+              <p>{entry.content}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+}
+
+export function MessagesView({ ownId, onMessagesRead }: { ownId: string | undefined; onMessagesRead: () => void }) {
   const [people, setPeople] = useState<PublicProfile[]>([])
   const [friendships, setFriendships] = useState<Friendship[]>([])
   const [selected, setSelected] = useState<PublicProfile | null>(null)
   const [messages, setMessages] = useState<DirectMessage[]>([])
+  const [draft, setDraft] = useState('')
+  const [pendingAttachment, setPendingAttachment] = useState<MessageAttachment | null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -160,7 +239,11 @@ export function CommunityView({ ownId, onMessagesRead }: { ownId: string | undef
 
   async function act(action: () => Promise<unknown>) {
     setBusy(true); setError('')
-    try { await action(); await reload() }
+    try {
+      await action()
+      await reload()
+      onMessagesRead()
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Thao tác chưa hoàn tất.') }
     finally { setBusy(false) }
   }
@@ -168,20 +251,41 @@ export function CommunityView({ ownId, onMessagesRead }: { ownId: string | undef
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selected) return
-    const form = event.currentTarget
-    const content = String(new FormData(form).get('content') ?? '').trim()
-    if (!content) return
+    const content = draft.trim()
+    if (!content && !pendingAttachment) return
     setBusy(true)
-    try { const message = await workspaceApi.sendMessage(selected.id, content); setMessages((items) => [...items, message]); form.reset() }
+    try {
+      const message = await workspaceApi.sendMessage(selected.id, content, pendingAttachment)
+      setMessages((items) => [...items, message])
+      setDraft('')
+      setPendingAttachment(null)
+      onMessagesRead()
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'Không gửi được tin nhắn.') }
     finally { setBusy(false) }
+  }
+
+  async function chooseAttachment(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    setBusy(true)
+    try {
+      const attachment = await workspaceApi.uploadMessageAttachment(file)
+      setPendingAttachment(attachment)
+      setError('')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Không đính kèm được tệp.')
+    } finally {
+      setBusy(false)
+      event.target.value = ''
+    }
   }
 
   const accepted = friendships.filter((item) => item.status === 'accepted')
   const incoming = friendships.filter((item) => item.status === 'pending' && item.request_incoming)
 
-  return <section className="community-page" aria-labelledby="community-title">
-    <div className="community-heading"><div><h2 id="community-title">Bạn học & trò chuyện</h2><p>Tìm bạn theo tên, trường hoặc ngành học. Tin nhắn chỉ mở khi hai người đã kết bạn.</p></div>
+  return <section className="community-page" aria-labelledby="messages-title">
+    <div className="community-heading"><div><h2 id="messages-title">Tin nhắn</h2><p>Tìm bạn theo tên, trường hoặc ngành học. Tin nhắn chỉ mở khi hai người đã kết bạn.</p></div>
       <form className="people-search" onSubmit={search}><Search size={17} /><input name="query" aria-label="Tìm người" placeholder="Tên, trường hoặc ngành…" /><button type="submit">Tìm</button></form>
     </div>
     {error && <p className="inline-error" role="alert">{error}</p>}
@@ -194,12 +298,19 @@ export function CommunityView({ ownId, onMessagesRead }: { ownId: string | undef
       <div className="social-detail">
         {!selected ? <div className="social-empty"><UserRound size={30} /><h3>Chọn một người để xem hồ sơ</h3><p>Hồ sơ công khai chỉ hiển thị tên, trường và ngành học.</p></div> : <>
           <div className="public-profile"><Avatar profile={selected} /><div><h3>{selected.full_name}</h3><p>{selected.university?.name ?? 'Chưa cập nhật trường'}</p><span>{selected.major ?? 'Chưa cập nhật ngành học'}</span></div><FriendAction profile={selected} busy={busy} onAct={act} /></div>
-          {selected.friendship_status === 'accepted' && <div className="direct-chat"><div className="message-thread">{messages.length === 0 ? <p className="chat-empty">Chưa có tin nhắn. Hãy bắt đầu bằng một lời chào.</p> : messages.map((message) => <div className={message.sender_id === ownId ? 'direct-message mine' : 'direct-message'} key={message.id}><p>{message.content}</p><time>{new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</time></div>)}</div><form onSubmit={send}><input name="content" required maxLength={4000} autoComplete="off" placeholder={`Nhắn cho ${selected.full_name}…`} /><button className="primary-action" disabled={busy} aria-label="Gửi tin nhắn"><Send size={17} /></button></form></div>}
+          {selected.friendship_status === 'accepted' && <div className="direct-chat"><div className="message-thread">{messages.length === 0 ? <p className="chat-empty">Chưa có tin nhắn. Hãy bắt đầu bằng một lời chào.</p> : messages.map((message) => {
+            const payload = parseMessageContent(message.content)
+            return <div className={message.sender_id === ownId ? 'direct-message mine' : 'direct-message'} key={message.id}><p>{payload.text || 'Tệp đính kèm'}</p>{payload.attachment && (
+              <div className="message-attachment"><a href={payload.attachment.url} target="_blank" rel="noreferrer">{payload.attachment.mime_type.startsWith('image/') ? <img src={payload.attachment.url} alt={payload.attachment.name} /> : <span>{payload.attachment.name}</span>}</a></div>
+            )}<time>{new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</time></div>
+          })}</div><form onSubmit={send}><input name="content" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={4000} autoComplete="off" placeholder={`Nhắn cho ${selected.full_name}…`} /><label className="upload-attachment"><Camera size={16} /><input type="file" accept="image/*,.pdf,.doc,.docx,.txt,.zip" onChange={chooseAttachment} disabled={busy} /></label>{pendingAttachment && <span className="pending-attachment">{pendingAttachment.name}</span>}<button className="primary-action" disabled={busy || (!pendingAttachment && !draft.trim())} aria-label="Gửi tin nhắn"><Send size={17} /></button></form></div>}
         </>}
       </div>
     </div>
   </section>
 }
+
+export const CommunityView = MessagesView
 
 function PersonRow({ profile, onSelect, action }: { profile: PublicProfile; onSelect: (profile: PublicProfile) => void; action?: React.ReactNode }) {
   return <div className="person-row"><button className="person-select" type="button" onClick={() => onSelect(profile)}><Avatar profile={profile} /><span><strong>{profile.full_name}</strong><small>{profile.university?.short_name ?? profile.major ?? 'Sinh viên'}</small></span></button><i>{action}</i></div>
