@@ -1,4 +1,4 @@
-import { ArrowRight, BrainCircuit, Eye, EyeOff, LockKeyhole, Mail, Orbit, UserRound } from 'lucide-react'
+import { ArrowRight, BrainCircuit, Eye, EyeOff, LockKeyhole, Mail, Moon, Orbit, Sun, UserRound } from 'lucide-react'
 import { BrandLogo } from '../../components/BrandLogo'
 import { AmbientOrbit } from '../../components/AmbientOrbit'
 import { CosmicBackdrop } from '../../components/CosmicBackdrop'
@@ -20,6 +20,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState('')
   const [university, setUniversity] = useState<University | null>(null)
   const [major, setMajor] = useState<MajorOption | null>(null)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
 
   useEffect(() => {
     const sync = () => setAuthenticated(getSession() !== null)
@@ -61,6 +62,15 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }
 
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    document.documentElement.dataset.theme = next
+    document.documentElement.style.colorScheme = next
+    window.localStorage.setItem('studyhub.theme.v1', next)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', next === 'dark' ? '#070b14' : '#8bc9f0')
+  }
+
   function switchMode(next: Mode) {
     setMode(next)
     setError('')
@@ -70,6 +80,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     <main className="auth-page">
       <CosmicBackdrop />
       <MobileSplash />
+      <button className="auth-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Chuyển sang giao diện ban ngày' : 'Chuyển sang giao diện không gian'}>{theme === 'dark' ? <Sun size={19} /> : <Moon size={19} />}</button>
       <section className="auth-story" aria-label="Giới thiệu StudyHubAI">
         <div className="auth-brand"><span className="brand-logo"><BrandLogo /></span><span className="brand-name">StudyHub<span>AI</span></span></div>
         <div className="auth-story-copy">

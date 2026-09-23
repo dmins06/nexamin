@@ -1,36 +1,27 @@
 {
   "name": "StudyHubAI",
-  "direction": "Learning Observatory",
-  "theme": "dark",
-  "colors": {
-    "background": "#070b14",
-    "surface": "#0d1422",
-    "raised": "#121c2d",
-    "text": "#f5f7ff",
-    "muted": "#9aa7bd",
-    "primary": "#7c6cff",
-    "accent": "#36d8ff",
-    "success": "#4cdda5",
-    "danger": "#ff7189"
+  "direction": "Orbit to Surface",
+  "theme": "dual",
+  "themes": {
+    "dark": { "environment": "Earth from orbit", "background": "#050914", "text": "#f3f7ff", "accent": "#36d8ff" },
+    "light": { "environment": "Earth surface and atmosphere", "background": "#dceefa", "text": "#10243a", "accent": "#087f9c" }
   },
-  "typography": {
-    "display": "Space Grotesk",
-    "body": "Manrope"
-  },
+  "primary": "#5265e8",
+  "typography": { "display": "Space Grotesk", "body": "Manrope" },
   "layout": {
-    "desktop": "236px minmax(0, 1fr) 286px",
-    "tablet": "88px minmax(0, 1fr)",
+    "desktop": "236px sidebar plus fluid workspace",
+    "dashboard": "four stats; schedule and AI; progress and goals",
+    "tablet": "88px sidebar with collapsing grids",
     "mobile": "single column with 5-item bottom navigation",
     "range": "360-1600px"
   },
-  "motion": {
-    "duration": "180-380ms",
-    "reducedMotion": true
-  },
+  "motion": { "duration": "180-450ms", "pointerParallax": true, "reducedMotion": true },
   "principles": [
     "real data only",
-    "no timer UI",
+    "orbit-to-surface theme continuity",
     "keyboard accessible",
-    "no horizontal overflow"
+    "no horizontal overflow",
+    "theme-aware authentication and pickers",
+    "logout remains reachable from mobile settings"
   ]
 }

@@ -37,7 +37,7 @@ describe('StudyHubAI dashboard', () => {
     }))
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: /Học thông minh hơn/ })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tiến độ học tập' })).toBeInTheDocument()
     const task = screen.getByRole('button', {
       name: 'Hoàn thành: Ôn bài do người dùng tạo',
     })
@@ -46,11 +46,18 @@ describe('StudyHubAI dashboard', () => {
     expect(window.localStorage.getItem('studyhub-ai:state:v2')).toContain('"completed":true')
   })
 
-  it('opens the schedule from the primary hero action', async () => {
+  it('opens the schedule from the dashboard', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('button', { name: /Bắt đầu ngay/ }))
+    await user.click(screen.getByRole('button', { name: 'Xem lịch' }))
     expect(screen.getByRole('heading', { name: 'Lịch học của bạn' })).toBeInTheDocument()
+  })
+
+  it('keeps sign out reachable from Settings', async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getAllByRole('button', { name: 'Cài đặt' })[0]!)
+    expect(screen.getByRole('button', { name: 'Đăng xuất' })).toBeInTheDocument()
   })
 
   it('creates a course and immediately shows it in the course list', async () => {

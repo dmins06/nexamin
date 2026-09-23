@@ -153,6 +153,11 @@ export function TutorView() {
   const [messages, setMessages] = useState<ChatMessage[]>([{ role: 'assistant', text: 'Chào bạn, mình là Emin AI. Hãy chọn môn học và đặt câu hỏi; mình sẽ ưu tiên trả lời từ tài liệu bạn đã tải lên.' }])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [draft] = useState(() => {
+    const value = window.sessionStorage.getItem('studyhub.ai.draft.v1') ?? ''
+    window.sessionStorage.removeItem('studyhub.ai.draft.v1')
+    return value
+  })
   useEffect(() => { if (!courseId && courses[0]) setCourseId(courses[0].id) }, [courseId, courses])
 
   async function send(event: FormEvent<HTMLFormElement>) {
@@ -175,7 +180,7 @@ export function TutorView() {
     <div className="chat-shell"><div className="chat-thread" aria-live="polite">{messages.map((message, index) => <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
       <span>{message.role === 'assistant' ? <Bot size={18} /> : 'Bạn'}</span><div><p>{message.text}</p>{message.citations && message.citations.length > 0 && <div className="citations">{message.citations.map((citation) => <span key={citation.chunk_id}><FileText size={13} /> {citation.filename}{citation.page ? ` · trang ${citation.page}` : ''}</span>)}</div>}</div>
     </article>)}{busy && <div className="typing"><i /><i /><i /><span>Đang đối chiếu tài liệu</span></div>}</div>
-      <form className="chat-composer" onSubmit={send}><textarea name="message" rows={2} required placeholder={courseId ? 'Hỏi về khái niệm, bài tập hoặc nội dung trong tài liệu…' : 'Chọn môn học trước khi đặt câu hỏi'} disabled={!courseId || busy} /><button className="primary-action" aria-label="Gửi câu hỏi" disabled={!courseId || busy}><Send size={18} /></button></form>{error && <p className="inline-error" role="alert">{error}</p>}
+      <form className="chat-composer" onSubmit={send}><textarea name="message" rows={2} required defaultValue={draft} placeholder={courseId ? 'Hỏi về khái niệm, bài tập hoặc nội dung trong tài liệu…' : 'Chọn môn học trước khi đặt câu hỏi'} disabled={!courseId || busy} /><button className="primary-action" aria-label="Gửi câu hỏi" disabled={!courseId || busy}><Send size={18} /></button></form>{error && <p className="inline-error" role="alert">{error}</p>}
     </div>
   </section>
 }

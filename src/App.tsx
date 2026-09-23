@@ -1,17 +1,20 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
+  BarChart3,
+  Bell,
+  BookOpen,
   CalendarDays,
-  Check,
-  ChevronRight,
-  Clock3,
   Home,
   Bot,
   Files,
   GraduationCap,
-  LogOut,
   Settings,
   Menu,
   MessageCircle,
+  Moon,
+  NotebookPen,
+  Search,
+  Sun,
   X,
   Sparkles,
   Users,
@@ -22,7 +25,7 @@ import { formatVietnameseDate } from './lib/format'
 import { BrandLogo } from './components/BrandLogo'
 import { MobileSplash } from './components/MobileSplash'
 import { CosmicBackdrop } from './components/CosmicBackdrop'
-import { logout } from './lib/api'
+import { DashboardOverview } from './features/dashboard/DashboardOverview'
 import { type CalendarEvent, type UserProfile, workspaceApi } from './lib/workspaceApi'
 import { LibraryView, TutorView } from "./features/workspace/WorkspaceViews"
 import { CoursesView } from "./features/workspace/AcademicCoursesView"
@@ -34,12 +37,14 @@ import type { StudyState, StudyTask, ViewId } from './types'
 
 const navItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
   { id: 'overview', label: 'Trang chủ', icon: Home },
-  { id: 'courses', label: 'Môn học', icon: GraduationCap },
   { id: 'schedule', label: 'Lịch học', icon: CalendarDays },
-  { id: 'tutor', label: 'EminAI', icon: Bot },
-  { id: 'library', label: 'Tài liệu', icon: Files },
+  { id: 'courses', label: 'Học phần', icon: GraduationCap },
+  { id: 'progress', label: 'Kế hoạch', icon: BookOpen },
+  { id: 'library', label: 'Ghi chú', icon: NotebookPen },
+  { id: 'tutor', label: 'AI Assistant', icon: Bot },
   { id: 'community', label: 'Cộng đồng', icon: Users },
   { id: 'messages', label: 'Tin nhắn', icon: MessageCircle },
+  { id: 'settings', label: 'Cài đặt', icon: Settings },
 ]
 
 const mobileNavItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
@@ -93,9 +98,16 @@ function App() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [friendRequestCount, setFriendRequestCount] = useState(0)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('studyhub.theme.v1') === 'light' ? 'light' : 'dark')
   const initialTasks = useRef(study.tasks)
 
   useEffect(() => saveStudyState(study), [study])
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.documentElement.style.colorScheme = theme
+    localStorage.setItem('studyhub.theme.v1', theme)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#070b14' : '#8bc9f0')
+  }, [theme])
   useEffect(() => { void workspaceApi.profile().then(setProfile).catch(() => undefined) }, [])
   useEffect(() => {
     const localTasks = initialTasks.current
@@ -199,11 +211,11 @@ function App() {
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
       <Sidebar active={view} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
       <main className="main-content" id="main-content">
-        <Header profile={profile} onNavigate={navigate} />
+        <Header profile={profile} onNavigate={navigate} theme={theme} onToggleTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
         <div className={`view-stage view-stage-${view}`} key={view}>
           <span className="view-stage-glint" aria-hidden="true" />
           {view === 'overview' && (
-            <Overview study={study} onToggleTask={toggleTask} onNavigate={navigate} />
+            <DashboardOverview study={study} onToggleTask={toggleTask} onNavigate={navigate} />
           )}
           {view === 'courses' && <CoursesView />}
           {view === 'library' && <LibraryView />}
@@ -224,7 +236,6 @@ function App() {
           {view === 'settings' && <SettingsView />}
         </div>
       </main>
-      <RightRail study={study} profile={profile} onNavigate={navigate} />
       <MobileNav active={view} onNavigate={navigate} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
     </div>
   )
@@ -274,7 +285,7 @@ function Sidebar({ active, onNavigate, profile, unreadMessages, friendRequestCou
       </div>
       <div className="student-chip">
         <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
-        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('settings')}><Settings size={16} /></button><button className="logout-button" aria-label="Đăng xuất" title="Đăng xuất" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={16} /></button>
+        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('settings')}><Settings size={16} /></button>
       </div>
     </aside>
   )
@@ -304,93 +315,74 @@ function MobileNav({ active, onNavigate, unreadMessages, friendRequestCount }: N
   )
 }
 
-function RightRail({ study, profile, onNavigate }: { study: StudyState; profile: UserProfile | null; onNavigate: (view: ViewId) => void }) {
-  const done = study.tasks.filter((task) => task.completed).length
-  const completion = study.tasks.length ? Math.round(done / study.tasks.length * 100) : 0
-  const next = [...study.tasks].filter((task) => !task.completed).sort((a, b) => (a.scheduledDate + a.scheduledTime).localeCompare(b.scheduledDate + b.scheduledTime))[0]
-  return <aside className="right-rail" aria-label="Tổng quan học tập">
-    <div className="rail-heading"><p>ĐỒNG HÀNH CÙNG</p><h2>{profile?.full_name?.split(/\s+/).at(-1) ?? 'bạn'}</h2></div>
-    <section className="rail-progress"><div className="progress-ring" style={{ '--progress': completion } as CSSProperties}><span>{completion}%</span></div><div><strong>Tiến độ</strong><p>{done}/{study.tasks.length} việc hoàn thành</p></div></section>
-    <section className="rail-card"><span className="rail-icon"><Sparkles size={18} /></span><p>EminAI</p><h3>Cần giải thích một khái niệm?</h3><button onClick={() => onNavigate('tutor')}>Hỏi EminAI <ChevronRight size={15} /></button></section>
-    <section className="rail-card rail-upcoming"><p>Sắp tới</p>{next ? <><h3>{next.title}</h3><span>{next.scheduledDate} · {next.scheduledTime}</span></> : <span>Chưa có lịch sắp tới</span>}<button onClick={() => onNavigate('progress')}>Xem tiến độ <ChevronRight size={15} /></button></section>
-  </aside>
+interface HeaderProps {
+  profile: UserProfile | null
+  onNavigate: (view: ViewId) => void
+  theme: 'dark' | 'light'
+  onToggleTheme: () => void
+  unreadMessages: number
+  friendRequestCount: number
 }
 
-function Header({ profile, onNavigate }: { profile: UserProfile | null; onNavigate: (view: ViewId) => void }) {
+function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, friendRequestCount }: HeaderProps) {
   const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? 'bạn'
+  const notificationCount = unreadMessages + friendRequestCount
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', focusSearch)
+    return () => window.removeEventListener('keydown', focusSearch)
+  }, [])
+
+  function mobileNavigate(nextView: ViewId) {
+    document.querySelector<HTMLDetailsElement>('.mobile-more')?.removeAttribute('open')
+    onNavigate(nextView)
+  }
+
+  function search(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const form = event.currentTarget
+    const query = new FormData(form).get('dashboard-search')?.toString().trim().toLocaleLowerCase('vi') ?? ''
+    if (!query) return
+    if (/ai|emin|hỏi|trợ lý/.test(query)) onNavigate('tutor')
+    else if (/lịch|buổi|ngày/.test(query)) onNavigate('schedule')
+    else if (/tài liệu|ghi chú|file/.test(query)) onNavigate('library')
+    else if (/cộng đồng|bạn bè|người dùng/.test(query)) onNavigate('community')
+    else if (/tin nhắn|trò chuyện/.test(query)) onNavigate('messages')
+    else if (/gpa|tiến độ|kế hoạch|thống kê/.test(query)) onNavigate('progress')
+    else onNavigate('courses')
+    form.reset()
+  }
+
   return <header className="topbar">
     <div className="mobile-brand"><Brand onHome={() => onNavigate('overview')} /></div>
-    <div className="topbar-copy"><p className="today">{formatVietnameseDate()}</p><h1>Chào bạn, {firstName}</h1></div>
-    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => onNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => onNavigate('library')}><Files size={17} />Tài liệu</button><button onClick={() => onNavigate('progress')}><Sparkles size={17} />Tiến độ</button><button onClick={() => onNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => onNavigate('messages')}><MessageCircle size={17} />Tin nhắn</button><button onClick={() => onNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
-    <div className="header-signal" aria-hidden="true"><span /><span /></div>
+    <div className="topbar-copy"><p className="today">{formatVietnameseDate()}</p><h1>Chào {firstName}, sẵn sàng học chưa?</h1></div>
+    <form className="command-search" role="search" onSubmit={search}>
+      <Search size={17} aria-hidden="true" />
+      <label className="sr-only" htmlFor="dashboard-search">Tìm môn học, tài liệu hoặc tính năng</label>
+      <input ref={searchInputRef} id="dashboard-search" name="dashboard-search" type="search" placeholder="Tìm môn học, tài liệu, hoặc hỏi AI..." autoComplete="off" />
+      <kbd>Ctrl K</kbd>
+    </form>
+    <div className="topbar-actions">
+      <button className="topbar-icon-button" type="button" onClick={() => onNavigate(unreadMessages ? 'messages' : 'community')} aria-label={notificationCount ? `${notificationCount} thông báo mới` : 'Thông báo'}>
+        <Bell size={18} />{notificationCount > 0 && <span className="notification-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}
+      </button>
+      <button className="topbar-icon-button theme-toggle" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Chuyển sang giao diện ban ngày' : 'Chuyển sang giao diện không gian'} aria-pressed={theme === 'light'}>
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
+      <button className="header-avatar" type="button" onClick={() => onNavigate('profile')} aria-label="Mở hồ sơ cá nhân">
+        {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <UserRound size={18} />}
+      </button>
+    </div>
+    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => mobileNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => mobileNavigate('library')}><Files size={17} />Ghi chú</button><button onClick={() => mobileNavigate('progress')}><BarChart3 size={17} />Kế hoạch</button><button onClick={() => mobileNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => mobileNavigate('messages')}><MessageCircle size={17} />Tin nhắn</button><button onClick={() => mobileNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
   </header>
 }
-
-interface OverviewProps {
-  study: StudyState
-  onToggleTask: (id: string) => void
-  onNavigate: (view: ViewId) => void
-}
-
-function Overview({ study, onToggleTask, onNavigate }: OverviewProps) {
-  const now = new Date()
-  const localToday = new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10)
-  const todayTasks = study.tasks.filter((task) => task.scheduledDate === localToday)
-  const completed = todayTasks.filter((task) => task.completed).length
-  return <div className="view-stack">
-    <section className="hero" aria-labelledby="hero-title">
-      <div className="hero-copy">
-        <p className="hero-kicker">LEARN · PLAN · GROW</p>
-        <h2 id="hero-title">Học thông minh hơn<br />cùng AI mỗi ngày.</h2>
-        <p className="hero-lead">Biến lịch học, tài liệu và mục tiêu thành một nhịp học rõ ràng — với EminAI luôn sẵn sàng hỗ trợ.</p>
-        <div className="hero-actions">
-          <button className="primary-action" type="button" onClick={() => onNavigate('schedule')}>Bắt đầu ngay <ChevronRight size={17} /></button>
-          <button className="secondary-action" type="button" onClick={() => onNavigate('tutor')}>Khám phá tính năng</button>
-        </div>
-      </div>
-      <div className="hero-earth-window" aria-hidden="true"><span /><span /></div>
-    </section>
-    <section className="task-ledger" aria-labelledby="today-title">
-      <div className="section-heading ledger-heading"><div><h2 id="today-title">Hôm nay</h2><p>{completed}/{todayTasks.length} việc đã hoàn thành</p></div><button className="text-button" onClick={() => onNavigate('schedule')}>Xem lịch học <ChevronRight size={16} /></button></div>
-      <div className="task-list">
-        {todayTasks.length === 0 && <div className="ledger-empty"><p>Hôm nay chưa có lịch học.</p><button className="text-button" type="button" onClick={() => onNavigate('schedule')}>Thêm buổi học <ChevronRight size={16} /></button></div>}
-        {todayTasks.map((task, index) => <TaskRow key={task.id} task={task} index={index} onToggle={onToggleTask} />)}
-      </div>
-    </section>
-  </div>
-}
-
-
-interface TaskRowProps {
-  task: StudyTask
-  index: number
-  onToggle: (id: string) => void
-}
-
-function TaskRow({ task, index, onToggle }: TaskRowProps) {
-  return (
-    <article className={task.completed ? 'task-row completed' : 'task-row'}>
-      <span className={`task-index ${task.tone}`}>{String(index + 1).padStart(2, '0')}</span>
-      <button
-        className="check-button"
-        onClick={() => onToggle(task.id)}
-        aria-label={task.completed ? `Đánh dấu chưa xong: ${task.title}` : `Hoàn thành: ${task.title}`}
-        aria-pressed={task.completed}
-      >
-        {task.completed && <Check size={16} strokeWidth={3} />}
-      </button>
-      <div className="task-copy">
-        <p>{task.course}</p>
-        <h3>{task.title}</h3>
-      </div>
-      <div className="task-time">
-        <span><Clock3 size={14} /> {task.duration} phút</span>
-        <small>{task.scheduledDate} · {task.scheduledTime}</small>
-      </div>
-    </article>
-  )
-}
-
 
 function ProgressView({ study }: { study: StudyState }) {
   const done = study.tasks.filter((task) => task.completed).length
