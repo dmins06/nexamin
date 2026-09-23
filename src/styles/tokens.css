@@ -16,4 +16,20 @@
   --radius: 14px;
   --font-display: 'Lora', Georgia, serif;
   --font-body: 'DM Sans', sans-serif;
+
+  --bg: #0c1422;
+  --surface: #121d2f;
+  --surface-raised: #17263d;
+  --surface-soft: #1e2d46;
+  --text: #edf3ff;
+  --text-muted: #aab7d1;
+  --primary: #7c6cff;
+  --primary-bright: #9d8dff;
+  --accent: #45d7ff;
+  --success: #49d9a5;
+  --warning: #efbf67;
+  --danger: #ff7e93;
+  --border: rgba(161, 180, 220, 0.2);
+  --border-strong: rgba(124, 108, 255, 0.52);
+  --shadow-soft: 0 20px 52px rgba(7, 12, 22, 0.34);
 }

@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core.exceptions import AppError, ForbiddenError, NotFoundError
 from app.models import DirectMessage, Friendship, FriendshipStatus, University, User
+from app.realtime import realtime_hub
 from app.schemas.auth import UniversitySummary
 from app.schemas.social import (
     DirectMessageResponse,
@@ -64,9 +65,13 @@ class SocialService:
             avatar_url=user.avatar_url,
             university=university,
             major=user.major,
+            student_year=user.student_year,
+            bio=user.bio,
             friendship_id=friendship.id if friendship else None,
             friendship_status=friendship.status.value if friendship else None,
             request_incoming=bool(friendship and friendship.requested_by_id != self.user.id),
+            is_online=realtime_hub.is_online(user.id),
+            last_seen_at=user.last_seen_at,
         )
 
     async def profile(self, user_id: uuid.UUID) -> PublicProfile:
@@ -74,6 +79,8 @@ class SocialService:
         return self._public(user, await self._friendship(user_id))
 
     async def people(self, query: str, limit: int = 30) -> list[PublicProfile]:
+        if not query.strip():
+            return []
         statement = (
             select(User)
             .outerjoin(University, User.university_id == University.id)
@@ -82,16 +89,8 @@ class SocialService:
             .order_by(User.full_name)
             .limit(limit)
         )
-        if query.strip():
-            pattern = f"%{query.strip()}%"
-            statement = statement.where(
-                or_(
-                    User.full_name.ilike(pattern),
-                    User.major.ilike(pattern),
-                    University.name.ilike(pattern),
-                    University.short_name.ilike(pattern),
-                )
-            )
+        pattern = f"%{query.strip()}%"
+        statement = statement.where(User.full_name.ilike(pattern))
         users = list((await self.session.scalars(statement)).unique().all())
         relationships = list(
             (

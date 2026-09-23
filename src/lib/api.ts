@@ -17,12 +17,6 @@ interface Page<T> {
   total: number
 }
 
-export interface RegistrationChallenge {
-  challenge_id: string
-  masked_email: string
-  expires_in: number
-}
-
 export interface RegistrationPayload {
   email: string
   password: string
@@ -114,31 +108,12 @@ export async function login(email: string, password: string) {
 }
 
 export async function register(payload: RegistrationPayload) {
-  const result = await request<TokenPair | RegistrationChallenge>("/auth/register", {
+  const tokens = await request<TokenPair>("/auth/register", {
     method: "POST",
     body: JSON.stringify(payload),
   })
-
-  if ('access_token' in result && 'refresh_token' in result) {
-    setSession(result)
-  }
-
-  return result
-}
-
-export async function resendRegistration(payload: RegistrationPayload) {
-  return request<RegistrationChallenge>("/auth/register/resend", {
-    method: "POST",
-    body: JSON.stringify(payload),
-  })
-}
-
-export async function verifyRegistration(challengeId: string, otp: string, email: string, password: string) {
-  await request("/auth/register/verify", {
-    method: "POST",
-    body: JSON.stringify({ challenge_id: challengeId, otp }),
-  })
-  return login(email, password)
+  setSession(tokens)
+  return tokens
 }
 
 export async function logout() {

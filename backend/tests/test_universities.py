@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 
-from app.models import University
+from app.models import University, User
 from app.schemas import UserCreate
 from app.services.auth import AuthService
 
@@ -32,7 +32,7 @@ async def test_registration_persists_selected_university(session) -> None:
     )
     session.add(university)
     await session.commit()
-    challenge, otp = await AuthService(session).request_registration(
+    await AuthService(session).register(
         UserCreate(
             email="learner@example.edu",
             password="StrongPass123",
@@ -40,8 +40,8 @@ async def test_registration_persists_selected_university(session) -> None:
             university_id=university.id,
         )
     )
-    assert otp is not None
-    user = await AuthService(session).verify_registration(challenge.id, otp)
+    user = await session.scalar(select(User).where(User.email == "learner@example.edu"))
+    assert user is not None
     stored = await session.scalar(select(University).where(University.id == user.university_id))
     assert stored is not None
     assert stored.official_code == "TST"

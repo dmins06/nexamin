@@ -13,10 +13,10 @@
   z-index: 1;
   overflow: hidden;
   padding: 42px clamp(40px,6vw,88px);
-  background: linear-gradient(145deg, rgba(12,17,29,.12), rgba(7,11,20,.2) 32%, rgba(7,11,20,.08) 100%);
+  background: linear-gradient(145deg, rgba(18,28,42,.7), rgba(13,21,35,.9) 32%, rgba(16,25,38,.8) 100%);
   border-right: 1px solid var(--border);
 }
-.auth-story::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 18% 15%,rgba(54,216,255,.06),transparent 24rem); }
+.auth-story::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 18% 15%,rgba(69,215,255,.08),transparent 24rem); }
 .auth-brand, .auth-story-copy, .auth-quote, .auth-orbit { position: relative; z-index: 1; }
 .auth-brand { display: flex; align-items: center; gap: 10px; }.auth-brand .brand-logo { width: 42px; height: 42px; }
 .auth-story-copy { max-width: 590px; margin-top: clamp(70px,11vh,125px); }

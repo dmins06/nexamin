@@ -25,11 +25,11 @@ function useCourses() {
     }).finally(() => setLoading(false))
   }
   useEffect(() => { void reload() }, [])
-  return { courses, loading, error, reload }
+  return { courses, setCourses, loading, error, reload }
 }
 
 export function CoursesView() {
-  const { courses, loading, error, reload } = useCourses()
+  const { courses, setCourses, loading, error, reload } = useCourses()
   const [creating, setCreating] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [formError, setFormError] = useState('')

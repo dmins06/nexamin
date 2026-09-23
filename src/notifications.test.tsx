@@ -74,7 +74,7 @@ describe('community notification', () => {
   })
 
   it('does not render seeded sample posts in the community feed', () => {
-    render(<CommunityView />)
+    render(<CommunityView ownId={undefined} onMessagesRead={() => undefined} />)
     expect(screen.queryByText(/Hôm nay mình hoàn xong/)).not.toBeInTheDocument()
   })
 })
@@ -104,7 +104,7 @@ describe('message notification', () => {
 
   it('refreshes the unread notification state after accepting a friend request', async () => {
     const onMessagesRead = vi.fn()
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('/social/people')) {
         return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
@@ -166,7 +166,7 @@ describe('message notification', () => {
 
   it('refreshes the unread notification state after sending a private message', async () => {
     const onMessagesRead = vi.fn()
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+    vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input)
       if (url.includes('/social/people')) {
         return new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
@@ -191,7 +191,7 @@ describe('message notification', () => {
           },
         ]), { status: 200, headers: { 'Content-Type': 'application/json' } })
       }
-      if (url.includes('/social/messages/user-2') && _init?.method === 'POST') {
+      if (url.includes("/social/messages/user-2") && init?.method === "POST") {
         return new Response(JSON.stringify({
           id: 'message-1',
           sender_id: 'user-1',

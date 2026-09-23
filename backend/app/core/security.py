@@ -1,5 +1,4 @@
 import hashlib
-import hmac
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
@@ -47,19 +46,6 @@ def decode_access_token(token: str) -> dict[str, Any]:
     if payload.get("type") != "access" or not payload.get("sub"):
         raise AppError("INVALID_TOKEN", "Invalid access token", 401)
     return payload
-
-
-def new_registration_otp() -> str:
-    return f"{secrets.randbelow(1_000_000):06d}"
-
-
-def hash_registration_otp(challenge_id: uuid.UUID, code: str) -> str:
-    message = f"{challenge_id}:{code}".encode()
-    return hmac.new(settings.jwt_secret.encode(), message, hashlib.sha256).hexdigest()
-
-
-def verify_registration_otp(challenge_id: uuid.UUID, code: str, expected: str) -> bool:
-    return secrets.compare_digest(hash_registration_otp(challenge_id, code), expected)
 
 
 def new_refresh_token() -> tuple[str, str]:

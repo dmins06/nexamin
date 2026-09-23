@@ -30,3 +30,16 @@ async def test_public_profile_does_not_expose_private_fields(session, users) -> 
 
     assert profile.full_name == second.full_name
     assert "email" not in profile.model_dump()
+
+
+async def test_people_are_hidden_until_search_and_only_match_names(session, users) -> None:
+    first, second = users
+    service = SocialService(session, first)
+
+    assert await service.people("") == []
+    assert await service.people("example.edu") == []
+
+    results = await service.people("Second")
+    assert [profile.id for profile in results] == [second.id]
+    assert results[0].is_online is False
+    assert results[0].last_seen_at is not None

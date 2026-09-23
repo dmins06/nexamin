@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import select
 
 from app.config import settings
 from app.core.exceptions import AppError
@@ -10,9 +11,9 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
+from app.models import User
 from app.schemas import LoginRequest, PasswordChangeRequest, UserCreate
 from app.services.auth import AuthService
-from app.services.email import send_registration_otp
 
 
 def test_password_hash_and_access_token() -> None:
@@ -25,29 +26,16 @@ def test_password_hash_and_access_token() -> None:
 
 
 @pytest.mark.asyncio
-async def test_register_creates_user_without_otp(session) -> None:
+async def test_register_login_refresh_and_password_change(session) -> None:
     service = AuthService(session)
-    pair = await service.register_user(
-        UserCreate(email="direct@example.edu", password="StrongPass123", full_name="Direct User")
-    )
-    assert pair.access_token
-    assert pair.refresh_token
-
-    loaded = await service.login(LoginRequest(email="direct@example.edu", password="StrongPass123"))
-    assert loaded.access_token
-    assert loaded.refresh_token
-
-
-@pytest.mark.asyncio
-async def test_register_login_and_refresh_rotation(session) -> None:
-    service = AuthService(session)
-    challenge, otp = await service.request_registration(
+    pair = await service.register(
         UserCreate(email="student@example.edu", password="StrongPass123", full_name="Student")
     )
-    assert otp is not None
-    user = await service.verify_registration(challenge.id, otp)
+    assert pair.access_token
+    user = await session.scalar(select(User).where(User.email == "student@example.edu"))
+    assert user is not None
     assert user.is_verified
-    pair = await service.login(LoginRequest(email=user.email, password="StrongPass123"))
+
     rotated = await service.refresh(pair.refresh_token)
     assert rotated.refresh_token != pair.refresh_token
     with pytest.raises(AppError) as reused:
@@ -64,54 +52,16 @@ async def test_register_login_and_refresh_rotation(session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_register_resend_creates_new_challenge(session) -> None:
+async def test_duplicate_registration_is_rejected(session) -> None:
     service = AuthService(session)
-    first, first_otp = await service.request_registration(
-        UserCreate(email="resend@example.edu", password="StrongPass123", full_name="Resend User")
-    )
-    second, second_otp = await service.resend_registration(
-        UserCreate(email="resend@example.edu", password="StrongPass123", full_name="Resend User")
-    )
-
-    assert first.id != second.id
-    assert first_otp is not None
-    assert second_otp is not None
-    await session.refresh(first)
-    assert first.consumed_at is not None
-    with pytest.raises(AppError, match="Mã xác thực không hợp lệ hoặc đã được sử dụng"):
-        await service.verify_registration(first.id, first_otp)
+    payload = UserCreate(email="same@example.edu", password="StrongPass123", full_name="Student")
+    await service.register(payload)
+    with pytest.raises(AppError) as duplicate:
+        await service.register(payload)
+    assert duplicate.value.code == "EMAIL_EXISTS"
 
 
-@pytest.mark.asyncio
-async def test_send_registration_otp_via_resend(monkeypatch) -> None:
-    settings.email_provider = "resend"
-    settings.resend_api_key = "test_key"
-    settings.resend_from_email = "StudyHubAI <noreply@studyhub.ai>"
-
-    class FakeResponse:
-        status_code = 200
-
-    def fake_post(
-        url: str,
-        *,
-        headers: dict[str, str],
-        json: dict[str, object],
-        timeout: int | None = None,
-    ) -> FakeResponse:
-        assert url == "https://api.resend.com/emails"
-        assert headers["Authorization"] == "Bearer test_key"
-        assert json["from"] == "noreply@studyhub.ai"
-        assert json["to"] == ["user@example.edu"]
-        assert json["subject"] == "Mã xác thực StudyHubAI"
-        assert timeout == 20
-        return FakeResponse()
-
-    monkeypatch.setattr("app.services.email.httpx.post", fake_post)
-
-    await send_registration_otp("user@example.edu", "123456")
-
-
-def test_expired_access_token_rejected(monkeypatch) -> None:
+def test_expired_access_token_rejected() -> None:
     import jwt
 
     token = jwt.encode(

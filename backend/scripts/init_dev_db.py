@@ -38,6 +38,14 @@ async def initialize() -> None:
                     text(f"ALTER TABLE courses ADD COLUMN {name} {definition}")
                 )
 
+        user_columns = await connection.run_sync(
+            lambda sync_connection: {
+                item["name"] for item in inspect(sync_connection).get_columns("users")
+            }
+        )
+        if "last_seen_at" not in user_columns:
+            await connection.execute(text("ALTER TABLE users ADD COLUMN last_seen_at DATETIME"))
+
     async with SessionFactory() as session:
         existing_codes = set(
             (

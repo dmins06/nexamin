@@ -16,7 +16,8 @@ tiến độ trong một giao diện responsive.
 - Mật khẩu đăng ký tối thiểu 6 ký tự.
 - Lịch học thật theo ngày: thêm, hoàn thành và xóa buổi học; tiến độ được tính từ dữ liệu người dùng và lưu cục bộ.
 - Hồ sơ riêng đầy đủ, chỉnh sửa tên/năm học/giới thiệu và tải ảnh đại diện PNG, JPEG hoặc WebP.
-- Hồ sơ công khai tối giản, kết bạn, nhắn tin trực tiếp và chấm đỏ khi có tin nhắn chưa đọc.
+- Mạng xã hội học tập: bảng tin thật, status/ảnh, quyền công khai/bạn bè/riêng tư, thích, bình luận, đăng lại, tìm người dùng và xem hồ sơ.
+- Kết bạn, trạng thái online/lần hoạt động gần nhất, nhắn tin trực tiếp, gửi ảnh/tệp và chấm đỏ khi có tin nhắn chưa đọc.
 - Quản lý môn học; tải, kiểm tra và xử lý PDF, DOCX, PPTX, TXT bằng local storage hoặc S3/MinIO.
 - Emin AI hoạt động ngay ở chế độ local, dùng tài liệu đã tải để trả lời có trích dẫn; có thể đổi sang Ollama hoặc API OpenAI-compatible.
 - Quiz, chấm bài, mức độ thành thạo và gợi ý kế hoạch học.
@@ -99,7 +100,7 @@ cd backend
 - Backend đọc PostgreSQL, Redis, MinIO, JWT, OAuth và cấu hình mô hình AI từ
   `backend/.env`.
 - Chỉ sao chép từ các file `.env.example`; không commit secret thật.
-- Migration `0002` nhập danh mục 426 trường, `0003` đồng bộ logo, `0004` hỗ trợ tên chương trình dài và `0005` thêm kết bạn/tin nhắn.
+- Migration `0002` nhập danh mục 426 trường, `0003` đồng bộ logo, `0004` hỗ trợ tên chương trình dài và `0005` thêm kết bạn/tin nhắn, `0008` thêm trạng thái hiện diện và `0009` thêm bảng tin xã hội.
 
 Xem [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md), [DESIGN.md](DESIGN.md)
 và [AGENTS.md](AGENTS.md) để biết thêm quy ước kiến trúc và giao diện.

@@ -64,9 +64,13 @@ export interface PublicProfile {
   avatar_url: string | null
   university: UserProfile['university']
   major: string | null
+  student_year?: number | null
+  bio?: string | null
   friendship_id: string | null
   friendship_status: 'pending' | 'accepted' | null
   request_incoming: boolean
+  is_online?: boolean
+  last_seen_at?: string | null
 }
 
 export interface Friendship {
@@ -77,6 +81,40 @@ export interface Friendship {
   created_at: string
 }
 
+
+export type SocialVisibility = 'public' | 'friends' | 'private'
+
+export interface SocialComment {
+  id: string
+  author: PublicProfile
+  content: string
+  created_at: string
+}
+
+export interface SocialPostPreview {
+  id: string
+  author: PublicProfile
+  content: string
+  image_url: string | null
+  created_at: string
+}
+
+export interface SocialPost {
+  id: string
+  author: PublicProfile
+  content: string
+  image_url: string | null
+  visibility: SocialVisibility
+  repost_of_id: string | null
+  repost_of: SocialPostPreview | null
+  like_count: number
+  comment_count: number
+  repost_count: number
+  liked_by_me: boolean
+  comments: SocialComment[]
+  created_at: string
+  updated_at: string
+}
 export interface DirectMessage {
   id: string
   sender_id: string
@@ -247,6 +285,29 @@ export const workspaceApi = {
   deleteDocument: (id: string) => authorized<void>(`/documents/${id}`, { method: 'DELETE' }),
   chat: (payload: { course_id: string; conversation_id?: string; message: string }) =>
     authorized<TutorReply>('/ai/chat', { method: 'POST', body: JSON.stringify(payload) }),
+  socialFeed: (profileId?: string) =>
+    authorized<SocialPost[]>(`/social/feed${profileId ? `?profile_id=${profileId}` : ''}`),
+  createSocialPost: (payload: { content: string; image_url?: string | null; visibility: SocialVisibility }) =>
+    authorized<SocialPost>('/social/posts', { method: 'POST', body: JSON.stringify(payload) }),
+  uploadSocialImage: (file: File) => {
+    const form = new FormData()
+    form.set('image', file)
+    return authorized<MessageAttachment>('/social/posts/upload', { method: 'POST', body: form })
+  },
+  togglePostLike: (postId: string) =>
+    authorized<SocialPost>(`/social/posts/${postId}/like`, { method: 'POST' }),
+  commentPost: (postId: string, content: string) =>
+    authorized<SocialPost>(`/social/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    }),
+  repostPost: (postId: string, visibility: SocialVisibility) =>
+    authorized<SocialPost>(`/social/posts/${postId}/repost`, {
+      method: 'POST',
+      body: JSON.stringify({ content: '', visibility }),
+    }),
+  deleteSocialPost: (postId: string) =>
+    authorized<void>(`/social/posts/${postId}`, { method: 'DELETE' }),
   people: (query = '') => authorized<PublicProfile[]>(`/social/people?${new URLSearchParams({ q: query })}`),
   friendships: () => authorized<Friendship[]>('/social/friendships'),
   requestFriend: (userId: string) => authorized<Friendship>(`/social/friendships/${userId}`, { method: 'POST' }),

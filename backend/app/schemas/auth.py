@@ -24,17 +24,6 @@ class UserCreate(BaseModel):
     student_year: int | None = Field(default=None, ge=1, le=10)
 
 
-class RegistrationChallengeResponse(BaseModel):
-    challenge_id: uuid.UUID
-    masked_email: str
-    expires_in: int
-
-
-class RegistrationVerifyRequest(BaseModel):
-    challenge_id: uuid.UUID
-    otp: str = Field(pattern=r"^\d{6}$")
-
-
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str = Field(min_length=6, max_length=128)

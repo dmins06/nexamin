@@ -15,7 +15,7 @@ def test_university_search_normalization_handles_vietnamese_accents() -> None:
 @pytest.mark.asyncio
 async def test_registration_rejects_unknown_university(session) -> None:
     with pytest.raises(AppError) as error:
-        await AuthService(session).request_registration(
+        await AuthService(session).register(
             UserCreate(
                 email="unknown-school@example.edu",
                 password="abc123",

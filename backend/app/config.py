@@ -30,17 +30,6 @@ class Settings(BaseSettings):
     media_base_url: str = "http://localhost:8010/media"
     max_upload_bytes: int = 25 * 1024 * 1024
 
-    email_provider: Literal["console", "smtp", "resend"] = "console"
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_username: str = ""
-    smtp_password: str = ""
-    smtp_from_email: str = ""
-    smtp_starttls: bool = True
-    resend_api_key: str = ""
-    resend_from_email: str = ""
-    registration_otp_expire_minutes: int = 10
-
     llm_provider: Literal["local", "ollama", "openai-compatible"] = "local"
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "qwen2.5:7b"

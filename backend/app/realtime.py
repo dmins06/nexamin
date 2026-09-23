@@ -22,14 +22,19 @@ class RealtimeHub:
         async with self._lock:
             self._connections[user_id].add(websocket)
 
-    async def disconnect(self, user_id: uuid.UUID, websocket: WebSocket) -> None:
+    async def disconnect(self, user_id: uuid.UUID, websocket: WebSocket) -> bool:
         async with self._lock:
             sockets = self._connections.get(user_id)
             if sockets is None:
-                return
+                return False
             sockets.discard(websocket)
             if not sockets:
                 self._connections.pop(user_id, None)
+                return False
+            return True
+
+    def is_online(self, user_id: uuid.UUID) -> bool:
+        return bool(self._connections.get(user_id))
 
     async def publish(self, user_id: uuid.UUID, event: dict[str, Any]) -> None:
         async with self._lock:

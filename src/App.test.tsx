@@ -64,7 +64,7 @@ describe('StudyHubAI dashboard', () => {
       credits: 3,
       color: '#7c6cff',
       description: 'Sẵn sàng để thêm tài liệu và chủ đề học.',
-      final_score: 8.5,
+      final_score: 8.5 as number | null,
       is_completed: true,
     }]
 
@@ -145,7 +145,7 @@ describe('StudyHubAI dashboard', () => {
 
     render(<App />)
 
-    await user.click(screen.getAllByRole('button', { name: /^Môn học$/i })[0])
+    await user.click(screen.getAllByRole("button", { name: /Môn học/i })[0]!)
     await user.click(screen.getByRole('button', { name: /Thêm môn học/i }))
     await user.type(screen.getByLabelText('Tên môn'), 'Lập trình nâng cao')
     await user.type(screen.getByLabelText('Mã môn'), 'LTPNC')
