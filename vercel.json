@@ -5,6 +5,12 @@
   "outputDirectory": "dist",
   "redirects": [
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "www.nexamin.id.vn" }],
+      "destination": "https://nexamin.id.vn/",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "www.nexamin.id.vn" }],
       "destination": "https://nexamin.id.vn/:path*",
