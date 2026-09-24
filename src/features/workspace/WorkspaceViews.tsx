@@ -171,15 +171,19 @@ export function TutorView() {
       const reply = await workspaceApi.chat({ course_id: courseId, conversation_id: conversationId, message: text })
       setConversationId(reply.conversation_id)
       setMessages((items) => [...items, { role: 'assistant', text: reply.answer, citations: reply.citations }])
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Emin AI chưa thể trả lời.') }
+    } catch (reason) {
+      setMessages((items) => items.slice(0, -1))
+      input.value = text
+      setError(reason instanceof Error ? reason.message : 'Emin AI chưa thể trả lời.')
+    }
     finally { setBusy(false) }
   }
 
   return <section className="workspace-page tutor-page" aria-labelledby="tutor-title">
-    <div className="workspace-heading"><div><p>Emin AI có nguồn</p><h2 id="tutor-title">Hỏi Emin AI về tài liệu</h2><span>Câu trả lời đi kèm trích dẫn để bạn kiểm tra lại kiến thức.</span></div><label className="course-select">Ngữ cảnh<select value={courseId} onChange={(event) => { setCourseId(event.target.value); setConversationId(undefined) }} disabled={loading}><option value="">Chọn môn học</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label></div>
+    <div className="workspace-heading"><div><p>Gia sư học tập</p><h2 id="tutor-title">Hỏi Emin AI</h2><span>Emin AI ưu tiên tài liệu của bạn và trích dẫn khi tìm được nội dung phù hợp.</span></div><label className="course-select">Ngữ cảnh<select value={courseId} onChange={(event) => { setCourseId(event.target.value); setConversationId(undefined) }} disabled={loading}><option value="">Chọn môn học</option>{courses.map((course) => <option key={course.id} value={course.id}>{course.name}</option>)}</select></label></div>
     <div className="chat-shell"><div className="chat-thread" aria-live="polite">{messages.map((message, index) => <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
       <span>{message.role === 'assistant' ? <Bot size={18} /> : 'Bạn'}</span><div><p>{message.text}</p>{message.citations && message.citations.length > 0 && <div className="citations">{message.citations.map((citation) => <span key={citation.chunk_id}><FileText size={13} /> {citation.filename}{citation.page ? ` · trang ${citation.page}` : ''}</span>)}</div>}</div>
-    </article>)}{busy && <div className="typing"><i /><i /><i /><span>Đang đối chiếu tài liệu</span></div>}</div>
+    </article>)}{busy && <div className="typing"><i /><i /><i /><span>Đang chuẩn bị câu trả lời</span></div>}</div>
       <form className="chat-composer" onSubmit={send}><textarea name="message" rows={2} required defaultValue={draft} placeholder={courseId ? 'Hỏi về khái niệm, bài tập hoặc nội dung trong tài liệu…' : 'Chọn môn học trước khi đặt câu hỏi'} disabled={!courseId || busy} /><button className="primary-action" aria-label="Gửi câu hỏi" disabled={!courseId || busy}><Send size={18} /></button></form>{error && <p className="inline-error" role="alert">{error}</p>}
     </div>
   </section>

@@ -19,7 +19,8 @@ cd "$backend_dir"
 : "${REDIS_URL:=redis://localhost:6379/0}"
 : "${CORS_ORIGINS:=http://localhost:5173}"
 : "${RATE_LIMIT_ENABLED:=false}"
-export APP_ENV DATABASE_URL REDIS_URL CORS_ORIGINS RATE_LIMIT_ENABLED
+: "${OLLAMA_BASE_URL:=http://127.0.0.1:11434}"
+export APP_ENV DATABASE_URL REDIS_URL CORS_ORIGINS RATE_LIMIT_ENABLED OLLAMA_BASE_URL
 
 "$python_bin" scripts/init_dev_db.py
 exec "$python_bin" -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8010

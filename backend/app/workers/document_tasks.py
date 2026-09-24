@@ -11,6 +11,7 @@ from sqlalchemy import delete
 from app.ai.embeddings import OllamaEmbeddingProvider
 from app.ai.rag import TextSplitter
 from app.config import settings
+from app.core.exceptions import AppError
 from app.core.storage import local_storage, storage
 from app.database import SessionFactory
 from app.models import Document, DocumentChunk, ProcessingStatus
@@ -47,12 +48,17 @@ async def process_document(document_id: uuid.UUID) -> None:
             content = await backend.download(document.storage_key)
             pages = extract_pages(content, Path(document.filename).suffix.lower())
             pieces = TextSplitter().split(pages)
-            if settings.llm_provider == "local":
+            embedding_mode = settings.embedding_provider
+            if settings.embedding_provider == "local":
                 embeddings = [[0.0] * settings.embedding_dimensions for _ in pieces]
             else:
-                embeddings = await OllamaEmbeddingProvider().embed_batch(
-                    [piece[1] for piece in pieces]
-                )
+                try:
+                    embeddings = await OllamaEmbeddingProvider().embed_batch(
+                        [piece[1] for piece in pieces]
+                    )
+                except AppError:
+                    embedding_mode = "local"
+                    embeddings = [[0.0] * settings.embedding_dimensions for _ in pieces]
             await session.execute(
                 delete(DocumentChunk).where(DocumentChunk.document_id == document.id)
             )
@@ -67,7 +73,10 @@ async def process_document(document_id: uuid.UUID) -> None:
                         page_number=page_number,
                         chunk_index=index,
                         embedding=embedding,
-                        chunk_metadata={"source": document.original_filename},
+                        chunk_metadata={
+                            "source": document.original_filename,
+                            "embedding_provider": embedding_mode,
+                        },
                     )
                 )
             document.page_count = len(pages)

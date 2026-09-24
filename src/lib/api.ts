@@ -1,3 +1,4 @@
+import { API_BASE } from './apiBase'
 import { searchLocalUniversities } from './universityCatalog'
 
 export interface University {
@@ -38,7 +39,6 @@ interface ApiErrorBody {
   detail?: string | Array<{ msg?: string }>
 }
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '')
 const SESSION_KEY = 'studyhub.auth.v1'
 
 function errorMessage(body: ApiErrorBody, fallback: string) {

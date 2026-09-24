@@ -1,6 +1,5 @@
 import { clearSession, getSession, setSession } from './api'
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? '/api/v1').replace(/\/$/, '')
+import { API_BASE, REALTIME_BASE } from './apiBase'
 
 export interface Course {
   id: string
@@ -335,7 +334,7 @@ export const workspaceApi = {
   realtime: (onEvent: (event: RealtimeMessageEvent) => void) => {
     const session = getSession()
     if (!session || typeof WebSocket === 'undefined') return null
-    const url = new URL(`${API_BASE}/social/ws`, window.location.origin)
+    const url = new URL(`${REALTIME_BASE}/social/ws`, window.location.origin)
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     url.searchParams.set('token', session.access_token)
     const socket = new WebSocket(url)

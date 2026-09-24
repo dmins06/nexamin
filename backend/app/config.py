@@ -30,9 +30,11 @@ class Settings(BaseSettings):
     media_base_url: str = "http://localhost:8010/media"
     max_upload_bytes: int = 25 * 1024 * 1024
 
-    llm_provider: Literal["local", "ollama", "openai-compatible"] = "local"
+    llm_provider: Literal["auto", "local", "ollama", "openai-compatible"] = "auto"
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5:7b"
+    ollama_model: str = "qwen3:4b"
+    ollama_api_key: str = ""
+    embedding_provider: Literal["local", "ollama"] = "local"
     openai_compatible_base_url: str = ""
     openai_compatible_api_key: str = ""
     openai_compatible_model: str = ""

@@ -62,9 +62,11 @@ class EminLocalProvider(LLMProvider):
         del system
         question = prompt.rsplit("Câu hỏi của sinh viên:", maxsplit=1)[-1].strip()
         if "Ngữ cảnh:" in prompt:
-            context = prompt.split("Ngữ cảnh:", maxsplit=1)[1].split(
-                "Câu hỏi của sinh viên:", maxsplit=1
-            )[0].strip()
+            context = (
+                prompt.split("Ngữ cảnh:", maxsplit=1)[1]
+                .split("Câu hỏi của sinh viên:", maxsplit=1)[0]
+                .strip()
+            )
             lowered = question.casefold()
             summary = any(term in lowered for term in _SUMMARY_TERMS)
             points = _grounded_points(context, question, summary=summary)
@@ -74,9 +76,7 @@ class EminLocalProvider(LLMProvider):
                     "Hãy hỏi bằng tên khái niệm, chương hoặc từ khóa xuất hiện trong file."
                 )
             heading = "Tóm tắt tài liệu" if summary else "Giải thích từ tài liệu"
-            bullets = "\n".join(
-                f"- {sentence} {citation}" for sentence, citation in points
-            )
+            bullets = "\n".join(f"- {sentence} {citation}" for sentence, citation in points)
             if summary:
                 return (
                     f"### {heading}\n\n{bullets}\n\n"

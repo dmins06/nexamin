@@ -1,7 +1,12 @@
 from fastapi import APIRouter
 
 from app.ai.embeddings import OllamaEmbeddingProvider
-from app.ai.providers import EminLocalProvider, OllamaProvider, OpenAICompatibleProvider
+from app.ai.providers import (
+    AutoEminProvider,
+    EminLocalProvider,
+    OllamaProvider,
+    OpenAICompatibleProvider,
+)
 from app.ai.providers.base import LLMProvider
 from app.config import settings
 from app.core.exceptions import AppError
@@ -11,7 +16,10 @@ from app.services.tutor import TutorService
 
 router = APIRouter(prefix="/ai", tags=["AI Tutor"])
 
+
 def _provider() -> LLMProvider:
+    if settings.llm_provider == "auto":
+        return AutoEminProvider()
     if settings.llm_provider == "ollama":
         return OllamaProvider()
     if settings.llm_provider == "openai-compatible":

@@ -104,3 +104,30 @@ cd backend
 
 Xem [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md), [DESIGN.md](DESIGN.md)
 và [AGENTS.md](AGENTS.md) để biết thêm quy ước kiến trúc và giao diện.
+
+## Chạy Emin AI với Ollama
+
+Emin AI mặc định dùng `LLM_PROVIDER=auto`: ưu tiên Ollama; nếu Ollama chưa chạy hoặc chưa có model, chat chuyển sang chế độ trả lời dựa trên tài liệu đã tải. Chế độ dự phòng không thể tự giảng kiến thức ngoài tài liệu. Để có câu trả lời AI đầy đủ trên máy:
+
+```bash
+ollama pull qwen3:4b
+ollama serve
+npm run dev:full
+```
+
+Nếu Ollama đã chạy thì không cần gọi lại `ollama serve`. Script `dev:full` kết nối `http://127.0.0.1:11434`. Với Docker Compose, chạy service Ollama và tải model vào container:
+
+```bash
+docker compose -f backend/docker-compose.yml --profile ai up -d ollama
+docker compose -f backend/docker-compose.yml exec ollama ollama pull qwen3:4b
+```
+
+Khi backend chạy trong Docker, đặt `OLLAMA_BASE_URL=http://ollama:11434` và `LLM_PROVIDER=auto` hoặc `ollama` trong `backend/.env`. `EMBEDDING_PROVIDER=local` là mặc định: tài liệu được truy xuất bằng từ khóa, không cần tải thêm model embedding. Muốn dùng vector, đặt `EMBEDDING_PROVIDER=ollama`, tải `nomic-embed-text` và xử lý lại tài liệu; hệ thống sẽ tự dùng truy xuất từ khóa cho tài liệu cũ hoặc khi embedding không sẵn sàng.
+
+Render không thể gọi Ollama đang chạy trên máy cá nhân qua `localhost`. Blueprint hiện giữ chế độ local để không phụ thuộc dịch vụ ngoài. Nếu muốn Emin AI dùng mô hình trên Render, cần một Ollama endpoint HTTPS có thể truy cập từ Render, cấu hình `LLM_PROVIDER=ollama` (hoặc `auto`), `OLLAMA_BASE_URL` và nếu có thì `OLLAMA_API_KEY` trong Render Environment; không đưa khóa vào Git.
+
+## Frontend trên Vercel
+
+`vercel.json` build ứng dụng Vite từ thư mục gốc, chuyển tiếp `/api/*` và `/media/*` tới backend Render, đồng thời phục vụ `index.html` cho đường dẫn SPA. Không đặt `VITE_API_BASE_URL` thành `localhost` trong môi trường Production. WebSocket thời gian thực kết nối trực tiếp qua WSS tới backend Render; có thể đổi bằng `VITE_REALTIME_BASE_URL` nếu chuyển backend.
+
+Khi kết nối GitHub với Vercel, chọn repository `dmins06/StudyHubAI`, Root Directory là thư mục gốc, Production Branch là `main`. Sau khi tạo project, thêm `nexamin.id.vn` và `www.nexamin.id.vn` trong Project Settings → Domains; đặt `www` chuyển hướng tới domain chính nếu muốn dùng `nexamin.id.vn` làm URL chuẩn. Xem bản ghi DNS cụ thể trong mục Domains của chính project trước khi chỉnh DNS tại P.A Việt Nam; giữ nguyên mọi MX/TXT dùng cho email.
