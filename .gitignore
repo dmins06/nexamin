@@ -20,3 +20,4 @@ backend/media/
 .DS_Store
 .impeccable/review/
 .impeccable/hook.cache.json
+.vercel
