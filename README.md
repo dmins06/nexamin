@@ -74,7 +74,7 @@ npm run dev:backend
 
 ## Triển khai miễn phí trên Render
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fdmins06%2FNexamin)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fdmins06%2Fnexamin)
 
 Project có `Dockerfile` full-stack và `render.yaml`. Sau khi repo private đã có trên GitHub, tạo **New Blueprint** trong Render và chọn repo. Blueprint tạo một domain HTTPS `*.onrender.com`, PostgreSQL và Key Value. JWT được Render tự sinh; không cần commit `.env`.
 
@@ -132,7 +132,7 @@ Render không thể gọi Ollama đang chạy trên máy cá nhân qua `localhos
 
 `vercel.json` build ứng dụng Vite từ thư mục gốc, chuyển tiếp `/api/*` và `/media/*` tới backend Render, đồng thời phục vụ `index.html` cho đường dẫn SPA. Không đặt `VITE_API_BASE_URL` thành `localhost` trong môi trường Production. WebSocket thời gian thực kết nối trực tiếp qua WSS tới backend Render; có thể đổi bằng `VITE_REALTIME_BASE_URL` nếu chuyển backend.
 
-Khi kết nối GitHub với Vercel, chọn repository `dmins06/Nexamin`, Root Directory là thư mục gốc, Production Branch là `main`. Sau khi tạo project, thêm `nexamin.id.vn` và `www.nexamin.id.vn` trong Project Settings → Domains; đặt `www` chuyển hướng tới domain chính nếu muốn dùng `nexamin.id.vn` làm URL chuẩn. Xem bản ghi DNS cụ thể trong mục Domains của chính project trước khi chỉnh DNS tại P.A Việt Nam; giữ nguyên mọi MX/TXT dùng cho email.
+Khi kết nối GitHub với Vercel, chọn repository `dmins06/nexamin`, Root Directory là thư mục gốc, Production Branch là `main`. Sau khi tạo project, thêm `nexamin.id.vn` và `www.nexamin.id.vn` trong Project Settings → Domains; đặt `www` chuyển hướng tới domain chính nếu muốn dùng `nexamin.id.vn` làm URL chuẩn. Xem bản ghi DNS cụ thể trong mục Domains của chính project trước khi chỉnh DNS tại P.A Việt Nam; giữ nguyên mọi MX/TXT dùng cho email.
 
 ### Nếu đăng nhập trên localhost bị lỗi
 
