@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore", case_sensitive=False)
 
     app_env: Literal["development", "test", "production"] = "development"
-    app_name: str = "StudyHub AI"
+    app_name: str = "Nexamin"
     assistant_name: str = "Emin AI"
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+asyncpg://studyhub:studyhub@localhost:5432/studyhub"

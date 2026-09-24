@@ -84,7 +84,7 @@ body { overflow-x: hidden; }
 
 .sidebar { width: 236px; padding: 22px 16px 18px; background: color-mix(in srgb, var(--glass-strong) 94%, transparent); border-color: var(--panel-line); box-shadow: 18px 0 50px rgba(0,0,0,.06); }
 .sidebar > nav { margin-top: 34px; gap: 4px; }
-.sidebar > nav::before { content: 'STUDYHUB · WORKSPACE'; color: var(--app-muted); opacity: .72; }
+.sidebar > nav::before { content: 'NEXAMIN · WORKSPACE'; color: var(--app-muted); opacity: .72; }
 .nav-item { min-height: 44px; border-radius: 13px; color: var(--app-muted); }
 .nav-item:hover { color: var(--app-text); background: var(--glass-soft); }
 .nav-item.active { color: var(--app-text); background: linear-gradient(100deg,color-mix(in srgb,var(--primary) 22%,transparent),color-mix(in srgb,var(--accent) 8%,transparent)); border-color: var(--panel-line); box-shadow: inset 0 1px rgba(255,255,255,.07); }

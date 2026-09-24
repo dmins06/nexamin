@@ -1,4 +1,4 @@
-# StudyHub AI Backend Architecture
+# Nexamin Backend Architecture
 
 ## Shape
 

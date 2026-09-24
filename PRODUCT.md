@@ -16,7 +16,7 @@ Inferred from the brief: university students who need one calm place to turn cou
 
 ## Product Purpose
 
-StudyHubAI helps a student decide what to study now, follow a focused session, and understand whether the week is on track. Success means identifying and beginning the next useful action within seconds.
+Nexamin helps a student decide what to study now, follow a focused session, and understand whether the week is on track. Success means identifying and beginning the next useful action within seconds.
 
 ## Positioning
 
@@ -38,11 +38,11 @@ Primarily a laptop during study blocks, with mobile web for quick progress check
 
 ## Brand Commitments
 
-The confirmed name is StudyHubAI. Copy is Vietnamese-first, direct, encouraging, and never falsely claims local recommendations came from a live AI model.
+The confirmed name is Nexamin. Copy is Vietnamese-first, direct, encouraging, and never falsely claims local recommendations came from a live AI model.
 
 ## Evidence on Hand
 
-No supplied logo, brand system, customer proof, production data, or third-party assets. Do not invent testimonials, institutional adoption, or outcome claims.
+The supplied black Nexamin N mark is stored in public assets with a white variant for dark surfaces. No customer proof or institutional adoption is supplied; do not invent those claims.
 
 ## Product Principles
 

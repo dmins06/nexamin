@@ -1,0 +1,43 @@
+/* Course grading uses the same semantic surface in dark and light mode. */
+.grade-form {
+  color: var(--app-text);
+  border-color: var(--panel-line);
+  background: var(--glass-soft);
+}
+.grade-form label { color: var(--app-muted); }
+.grade-form input[type='number'] {
+  color: var(--app-text) !important;
+  border-color: var(--panel-line) !important;
+  background: var(--field-bg) !important;
+}
+.grade-form input[type='number']::placeholder { color: var(--app-muted); opacity: 1; }
+.grade-form .completion-check { color: var(--app-text); }
+.grade-form .completion-check input { width: 18px; height: 18px; accent-color: var(--primary); }
+.course-grade-row > span { border-color: var(--panel-line); background: var(--glass-soft); }
+.grade-edit { color: var(--app-muted); border-color: var(--panel-line); background: var(--glass-soft); }
+.grade-edit:hover, .grade-edit:focus-visible { color: var(--accent); border-color: var(--panel-line-strong); }
+
+/* Mobile navigation and its overflow menu must share the active theme. */
+.mobile-more summary,
+.mobile-more > div {
+  color: var(--app-text);
+  border-color: var(--panel-line);
+  background: var(--glass-strong);
+  backdrop-filter: blur(22px) saturate(1.12);
+}
+.mobile-more > div { box-shadow: var(--app-shadow); }
+.mobile-more button { color: var(--app-muted); }
+.mobile-more button:hover,
+.mobile-more button:focus-visible { color: var(--app-text); background: var(--glass-soft); }
+:root[data-theme='light'] .mobile-nav { border-color: var(--panel-line); background: var(--glass-strong); box-shadow: var(--app-shadow); }
+:root[data-theme='light'] .mobile-nav button { color: var(--app-muted); }
+:root[data-theme='light'] .mobile-nav button.active {
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--primary) 13%, var(--glass-soft));
+}
+:root[data-theme='light'] .mobile-nav button.active svg { color: var(--accent); filter: none; }
+@media (max-width: 760px) {
+  .topbar { grid-template-columns: 40px minmax(0, 1fr) 88px; }
+  .topbar-actions { grid-column: 3; grid-row: 1; justify-self: start; margin: 0 !important; }
+  .mobile-more { grid-column: 3; grid-row: 1; justify-self: end; z-index: 40; }
+}

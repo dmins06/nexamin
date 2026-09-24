@@ -248,9 +248,9 @@ interface NavigationProps {
 
 function Brand({ onHome }: { onHome: () => void }) {
   return (
-    <button className="brand" type="button" onClick={onHome} aria-label="Về Trang chủ StudyHubAI">
+    <button className="brand" type="button" onClick={onHome} aria-label="Về Trang chủ Nexamin">
       <span className="brand-logo"><BrandLogo /></span>
-      <span className="brand-name">StudyHub<span>AI</span></span>
+      <span className="brand-name">Nexamin</span>
     </button>
   )
 }
@@ -404,7 +404,7 @@ function ProgressView({ study }: { study: StudyState }) {
         {courseProgress.map((course) => <div className="progress-line" key={course.name}><div><span>{course.name}</span><strong>{course.value}%</strong></div><span className="progress-track"><i style={{ width: `${course.value}%` }} /></span></div>)}
       </div>
     </div>
-    <div className="insight-note"><Sparkles size={20} /><div><h3>Dữ liệu thuộc về bạn</h3><p>StudyHubAI chỉ tạo nhận xét sau khi bạn có đủ hoạt động học tập thực tế.</p></div></div>
+    <div className="insight-note"><Sparkles size={20} /><div><h3>Dữ liệu thuộc về bạn</h3><p>Nexamin chỉ tạo nhận xét sau khi bạn có đủ hoạt động học tập thực tế.</p></div></div>
   </section>
 }
 

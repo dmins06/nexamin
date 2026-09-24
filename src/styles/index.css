@@ -18,3 +18,6 @@
 @import './cosmic-background.css';
 
 @import './dual-theme-dashboard.css';
+
+@import './brand.css';
+@import './theme-fixes.css';

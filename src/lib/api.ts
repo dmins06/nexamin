@@ -60,7 +60,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as ApiErrorBody
-    throw new Error(errorMessage(body, 'Yêu cầu chưa thể hoàn tất.'))
+    const fallback = response.status === 404
+      ? 'Không tìm thấy API. Nếu đang chạy local, hãy dùng npm run dev để khởi động cả backend.'
+      : response.status >= 500
+        ? 'Máy chủ Nexamin chưa sẵn sàng. Nếu đang chạy local, hãy kiểm tra backend ở cổng 8010.'
+        : 'Yêu cầu chưa thể hoàn tất.'
+    throw new Error(errorMessage(body, fallback))
   }
   return response.json() as Promise<T>
 }

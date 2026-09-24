@@ -1,1 +1,1 @@
-"""StudyHub AI backend."""
+"""Nexamin backend."""

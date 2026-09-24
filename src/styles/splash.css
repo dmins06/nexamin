@@ -1,6 +1,6 @@
 @media (max-width: 760px) {
   .app-shell::after, .auth-page::after {
-    content: 'StudyHubAI';
+    content: 'Nexamin';
     position: fixed; z-index: 100; inset: 0; display: grid; place-items: center;
     background: radial-gradient(circle at 50% 42%,rgba(124,108,255,.24),transparent 16rem),#070b14;
     color: #f5f7ff; font: 700 25px var(--font-display); letter-spacing: -.04em;

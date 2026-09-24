@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 
-describe('StudyHubAI dashboard', () => {
+describe('Nexamin dashboard', () => {
   afterEach(cleanup)
   beforeEach(() => {
     window.localStorage.clear()

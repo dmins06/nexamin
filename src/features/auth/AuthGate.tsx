@@ -81,8 +81,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
       <CosmicBackdrop />
       <MobileSplash />
       <button className="auth-theme-toggle" type="button" onClick={toggleTheme} aria-label={theme === 'dark' ? 'Chuyển sang giao diện ban ngày' : 'Chuyển sang giao diện không gian'}>{theme === 'dark' ? <Sun size={19} /> : <Moon size={19} />}</button>
-      <section className="auth-story" aria-label="Giới thiệu StudyHubAI">
-        <div className="auth-brand"><span className="brand-logo"><BrandLogo /></span><span className="brand-name">StudyHub<span>AI</span></span></div>
+      <section className="auth-story" aria-label="Giới thiệu Nexamin">
+        <div className="auth-brand"><span className="brand-logo"><BrandLogo /></span><span className="brand-name">Nexamin</span></div>
         <div className="auth-story-copy">
           <p className="folio">LEARN · PLAN · GROW</p>
           <h1>Một không gian học tập dành riêng cho bạn.</h1>

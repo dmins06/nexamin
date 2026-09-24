@@ -1,8 +1,10 @@
-# StudyHubAI
+# Nexamin
 
-StudyHubAI là không gian học tập tiếng Việt dành cho sinh viên: quản lý môn học
+Nexamin là không gian học tập tiếng Việt dành cho sinh viên: quản lý môn học
 và tài liệu, hỏi gia sư AI có trích dẫn, lập kế hoạch, học tập trung và theo dõi
 tiến độ trong một giao diện responsive.
+
+Logo Nexamin gốc và các biến thể dùng cho dark/light mode nằm trong `public/nexamin-mark-*.png`; favicon và biểu tượng ứng dụng cũng lấy từ dấu N này.
 
 ## Chức năng chính
 
@@ -72,7 +74,7 @@ npm run dev:backend
 
 ## Triển khai miễn phí trên Render
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fdmins06%2FStudyHubAI)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fdmins06%2FNexamin)
 
 Project có `Dockerfile` full-stack và `render.yaml`. Sau khi repo private đã có trên GitHub, tạo **New Blueprint** trong Render và chọn repo. Blueprint tạo một domain HTTPS `*.onrender.com`, PostgreSQL và Key Value. JWT được Render tự sinh; không cần commit `.env`.
 
@@ -130,4 +132,8 @@ Render không thể gọi Ollama đang chạy trên máy cá nhân qua `localhos
 
 `vercel.json` build ứng dụng Vite từ thư mục gốc, chuyển tiếp `/api/*` và `/media/*` tới backend Render, đồng thời phục vụ `index.html` cho đường dẫn SPA. Không đặt `VITE_API_BASE_URL` thành `localhost` trong môi trường Production. WebSocket thời gian thực kết nối trực tiếp qua WSS tới backend Render; có thể đổi bằng `VITE_REALTIME_BASE_URL` nếu chuyển backend.
 
-Khi kết nối GitHub với Vercel, chọn repository `dmins06/StudyHubAI`, Root Directory là thư mục gốc, Production Branch là `main`. Sau khi tạo project, thêm `nexamin.id.vn` và `www.nexamin.id.vn` trong Project Settings → Domains; đặt `www` chuyển hướng tới domain chính nếu muốn dùng `nexamin.id.vn` làm URL chuẩn. Xem bản ghi DNS cụ thể trong mục Domains của chính project trước khi chỉnh DNS tại P.A Việt Nam; giữ nguyên mọi MX/TXT dùng cho email.
+Khi kết nối GitHub với Vercel, chọn repository `dmins06/Nexamin`, Root Directory là thư mục gốc, Production Branch là `main`. Sau khi tạo project, thêm `nexamin.id.vn` và `www.nexamin.id.vn` trong Project Settings → Domains; đặt `www` chuyển hướng tới domain chính nếu muốn dùng `nexamin.id.vn` làm URL chuẩn. Xem bản ghi DNS cụ thể trong mục Domains của chính project trước khi chỉnh DNS tại P.A Việt Nam; giữ nguyên mọi MX/TXT dùng cho email.
+
+### Nếu đăng nhập trên localhost bị lỗi
+
+Chạy `npm run dev` từ thư mục gốc để khởi động cả backend (`127.0.0.1:8010`) và Vite; chỉ chạy `npm run dev:frontend` thì proxy `/api` sẽ lỗi nếu backend chưa chạy. Kiểm tra `http://127.0.0.1:8010/health/live` phải trả về `{"status":"ok"}`. Tài khoản trên SQLite local và PostgreSQL Render là hai cơ sở dữ liệu riêng, nên tài khoản đã tạo trên server không tự xuất hiện ở localhost.

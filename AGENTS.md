@@ -1,4 +1,4 @@
-# StudyHubAI Development Rules
+# Nexamin Development Rules
 
 - Build a responsive, accessible Vietnamese-first study dashboard.
 - Use React, TypeScript, and Vite.

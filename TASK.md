@@ -1,4 +1,4 @@
-# StudyHubAI Completion Plan
+# Nexamin Completion Plan
 
 ## Goal
 

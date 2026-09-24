@@ -1,5 +1,5 @@
 ---
-name: StudyHubAI
+name: Nexamin
 description: Orbit to Surface — không gian học tập AI hai môi trường, dữ liệu thật và có chiều sâu.
 colors:
   dark-background: "#050914"
@@ -14,7 +14,7 @@ typography:
   body: "Manrope, sans-serif"
 ---
 
-# Design System: StudyHubAI
+# Design System: Nexamin
 
 ## Creative direction
 
@@ -22,7 +22,7 @@ typography:
 
 ## Brand
 
-Tên hiển thị luôn là **StudyHubAI**; trợ lý là **Emin AI**. Biểu tượng chữ S cyan–indigo–violet luôn có thể đưa người dùng về Trang chủ. Không dùng branding UTH, emoji hoặc slogan cũ.
+Tên hiển thị luôn là **Nexamin**; trợ lý là **Emin AI**. Biểu tượng chữ N đơn sắc từ file được cung cấp luôn có thể đưa người dùng về Trang chủ: đen trên nền sáng, trắng trên nền tối; giữ đúng tỷ lệ và kích thước 38px ở sidebar. Không dùng branding UTH, emoji hoặc slogan cũ.
 
 ## Color and depth
 

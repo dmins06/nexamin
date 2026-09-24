@@ -240,7 +240,7 @@ async function authorized<T>(path: string, init: RequestInit = {}, retry = true)
   try {
     response = await fetch(`${API_BASE}${path}`, { ...init, headers })
   } catch {
-    throw new Error('Không thể kết nối máy chủ StudyHubAI.')
+    throw new Error('Không thể kết nối máy chủ Nexamin.')
   }
   if (response.status === 401 && retry) {
     const next = await refreshAccess()

@@ -44,7 +44,7 @@ export function SettingsView() {
         {changed && <div className="settings-success" role="status"><CheckCircle2 size={18} /><span><strong>Đã đổi mật khẩu</strong><small>Các phiên làm mới trước đó đã bị thu hồi.</small></span></div>}
         <button className="primary-action" disabled={busy || changed}>{busy ? <LoaderCircle className="spin" size={18} /> : <ShieldCheck size={18} />}{busy ? 'Đang cập nhật…' : changed ? 'Đã cập nhật' : 'Cập nhật mật khẩu'}</button>
       </form>
-      <aside className="settings-note"><ShieldCheck size={26} /><h3>Bảo vệ tài khoản</h3><p>Sau khi đổi mật khẩu, StudyHubAI thu hồi toàn bộ refresh token. Hãy đăng nhập lại để bắt đầu phiên mới an toàn.</p><div className="settings-session"><span><strong>Phiên hiện tại</strong><small>Đăng xuất an toàn khỏi thiết bị này.</small></span><button className="settings-logout" type="button" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={17} />{changed ? 'Đăng nhập lại' : 'Đăng xuất'}</button></div></aside>
+      <aside className="settings-note"><ShieldCheck size={26} /><h3>Bảo vệ tài khoản</h3><p>Sau khi đổi mật khẩu, Nexamin thu hồi toàn bộ refresh token. Hãy đăng nhập lại để bắt đầu phiên mới an toàn.</p><div className="settings-session"><span><strong>Phiên hiện tại</strong><small>Đăng xuất an toàn khỏi thiết bị này.</small></span><button className="settings-logout" type="button" onClick={() => void logout().finally(() => window.location.reload())}><LogOut size={17} />{changed ? 'Đăng nhập lại' : 'Đăng xuất'}</button></div></aside>
     </div>
   </section>
 }
