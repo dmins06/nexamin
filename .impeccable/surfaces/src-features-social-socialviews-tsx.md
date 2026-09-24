@@ -12,7 +12,7 @@ SCOPE
 
 AUDIENCE AND JOB
 - Vietnamese university students sharing study progress, useful images and short status updates.
-- Primary job: publish, discover, react and continue a useful academic conversation without leaving StudyHubAI.
+- Primary job: publish, discover, react and continue a useful academic conversation without leaving Nexamin.
 
 TASKS AND ACTIONS
 - Compose a text or image post and choose public, friends-only or private visibility.
