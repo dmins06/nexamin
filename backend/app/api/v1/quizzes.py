@@ -1,9 +1,10 @@
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Request, status
 from sqlalchemy import select
 
-from app.ai.providers import OllamaProvider
+from app.api.v1.ai import _provider
+from app.core.ai_quota import enforce_gemini_quota
 from app.dependencies import CurrentUser, DBSession
 from app.models import Question
 from app.repositories.scoped import owned_quiz
@@ -31,9 +32,11 @@ async def quiz_response(quiz_id: uuid.UUID, session: DBSession, user_id: uuid.UU
 
 @router.post("/generate", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
 async def generate_quiz(
-    payload: QuizGenerateRequest, session: DBSession, user: CurrentUser
+    payload: QuizGenerateRequest, session: DBSession, user: CurrentUser, request: Request
 ) -> QuizResponse:
-    quiz = await QuizService(session, user.id, OllamaProvider()).generate(payload)
+    provider = _provider()
+    await enforce_gemini_quota(request, user.id)
+    quiz = await QuizService(session, user.id, provider).generate(payload)
     return await quiz_response(quiz.id, session, user.id)
 
 
@@ -46,4 +49,4 @@ async def get_quiz(quiz_id: uuid.UUID, session: DBSession, user: CurrentUser) ->
 async def submit_quiz(
     quiz_id: uuid.UUID, payload: QuizSubmitRequest, session: DBSession, user: CurrentUser
 ) -> QuizResult:
-    return await QuizService(session, user.id, OllamaProvider()).submit(quiz_id, payload)
+    return await QuizService(session, user.id, None).submit(quiz_id, payload)

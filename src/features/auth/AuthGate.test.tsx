@@ -21,4 +21,17 @@ describe('AuthGate', () => {
     fireEvent.focus(picker)
     await waitFor(() => expect(screen.getByText('426 cơ sở phù hợp')).toBeInTheDocument())
   })
+
+  it('keeps the session when the backend is temporarily unavailable', async () => {
+    sessionStorage.setItem('studyhub.auth.v1', JSON.stringify({
+      access_token: 'access', refresh_token: 'refresh', token_type: 'bearer', expires_in: 900,
+    }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false, status: 503, json: async () => ({ error: { message: 'Unavailable' } }),
+    }))
+    render(<AuthGate><p>Dashboard</p></AuthGate>)
+    await waitFor(() => expect(fetch).toHaveBeenCalled())
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(sessionStorage.getItem('studyhub.auth.v1')).not.toBeNull()
+  })
 })

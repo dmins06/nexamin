@@ -44,12 +44,14 @@ def mastery_score(correct: int, answered: int) -> float:
 
 
 class QuizService:
-    def __init__(self, session: AsyncSession, user_id: uuid.UUID, llm: LLMProvider):
+    def __init__(self, session: AsyncSession, user_id: uuid.UUID, llm: LLMProvider | None):
         self.session = session
         self.user_id = user_id
         self.llm = llm
 
     async def generate(self, payload: QuizGenerateRequest) -> Quiz:
+        if self.llm is None:
+            raise AppError("AI_CONFIG_ERROR", "Emin AI chưa được cấu hình", 503)
         await owned_course(self.session, payload.course_id, self.user_id)
         prompt = (
             f"Tạo {payload.question_count} câu hỏi {payload.difficulty.value} về {payload.topic}. "

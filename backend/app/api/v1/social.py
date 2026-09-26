@@ -17,7 +17,7 @@ from sqlalchemy import select
 from app.config import settings
 from app.core.exceptions import AppError
 from app.core.security import decode_access_token
-from app.core.storage import local_storage, storage
+from app.core.storage import blob_storage, local_storage, storage
 from app.database import SessionFactory
 from app.dependencies import CurrentUser, DBSession
 from app.models import User
@@ -107,6 +107,9 @@ async def upload_post_image(
     key = f"social/{user.id}/{uuid.uuid4()}{extension}"
     if settings.storage_provider == "local":
         await local_storage.upload(key, content, content_type)
+        url = f"{settings.media_base_url.rstrip('/')}/{key}"
+    elif settings.storage_provider == "blob":
+        await blob_storage.upload(key, content, content_type)
         url = f"{settings.media_base_url.rstrip('/')}/{key}"
     else:
         await storage.upload(key, content, content_type)
@@ -237,6 +240,9 @@ async def upload_message_attachment(
     key = f"messages/{user.id}/{uuid.uuid4()}{extension}"
     if settings.storage_provider == "local":
         await local_storage.upload(key, content, mime_type)
+        url = f"{settings.media_base_url.rstrip('/')}/{key}"
+    elif settings.storage_provider == "blob":
+        await blob_storage.upload(key, content, mime_type)
         url = f"{settings.media_base_url.rstrip('/')}/{key}"
     else:
         await storage.upload(key, content, mime_type)

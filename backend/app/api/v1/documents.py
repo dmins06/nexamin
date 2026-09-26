@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile, status
 
 from app.config import settings
-from app.core.storage import StorageBackend, local_storage, storage
+from app.core.storage import StorageBackend, selected_storage
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import DocumentResponse, Page
 from app.services.documents import DocumentService
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/documents", tags=["Documents"])
 
 
 def document_storage() -> StorageBackend:
-    return local_storage if settings.storage_provider == "local" else storage
+    return selected_storage()
 
 
 @router.post("/upload", response_model=DocumentResponse, status_code=status.HTTP_202_ACCEPTED)
@@ -24,7 +24,7 @@ async def upload_document(
     file: UploadFile = File(),
 ) -> DocumentResponse:
     document = await DocumentService(session, user.id, document_storage()).upload(course_id, file)
-    if settings.storage_provider == "local":
+    if settings.storage_provider in ("local", "blob"):
         await process_document(document.id)
         await session.refresh(document)
     else:

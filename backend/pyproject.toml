@@ -22,6 +22,7 @@ dependencies = [
   "redis>=5.2,<6",
   "celery[redis]>=5.4,<6",
   "boto3>=1.35,<2",
+  "vercel>=0.11,<0.12",
   "pgvector>=0.3.6,<1",
   "structlog>=24.4,<26",
   "slowapi>=0.1.9,<1",

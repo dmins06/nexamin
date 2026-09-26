@@ -17,6 +17,7 @@ backend/.venv/
 backend/studyhub-dev.db
 backend/studyhub-dev.db-*
 backend/media/
+migration-data/
 .DS_Store
 .impeccable/review/
 .impeccable/hook.cache.json

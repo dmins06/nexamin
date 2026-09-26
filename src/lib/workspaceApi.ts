@@ -215,8 +215,11 @@ async function performRefresh(): Promise<TokenPair | null> {
     body: JSON.stringify({ refresh_token: session.refresh_token }),
   })
   if (!response.ok) {
-    clearSession()
-    return null
+    if (response.status === 401 || response.status === 403) {
+      clearSession()
+      return null
+    }
+    throw new Error('Máy chủ Nexamin tạm thời chưa sẵn sàng. Vui lòng thử lại sau.')
   }
   const next = (await response.json()) as TokenPair
   setSession(next)

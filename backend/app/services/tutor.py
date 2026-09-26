@@ -4,7 +4,6 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.ai.embeddings.base import EmbeddingProvider
 from app.ai.providers.base import LLMProvider
 from app.ai.rag import ContextBuilder, LexicalReranker, PermissionScopedRetriever
 from app.config import settings
@@ -30,12 +29,10 @@ class TutorService:
         session: AsyncSession,
         user_id: uuid.UUID,
         llm: LLMProvider,
-        embeddings: EmbeddingProvider,
     ):
         self.session = session
         self.user_id = user_id
         self.llm = llm
-        self.embeddings = embeddings
 
     async def chat(self, payload: ChatRequest) -> ChatResponse:
         await owned_course(self.session, payload.course_id, self.user_id)
@@ -60,38 +57,10 @@ class TutorService:
             select(DocumentChunk.id).where(DocumentChunk.course_id == payload.course_id).limit(1)
         )
         retrieved = []
-        has_local_chunks = (
-            bool(
-                await self.session.scalar(
-                    select(DocumentChunk.id)
-                    .where(
-                        DocumentChunk.course_id == payload.course_id,
-                        DocumentChunk.chunk_metadata["embedding_provider"]
-                        .as_string()
-                        .is_distinct_from("ollama"),
-                    )
-                    .limit(1)
-                )
-            )
-            if has_chunks and settings.embedding_provider == "ollama"
-            else False
-        )
-        if has_chunks and (settings.embedding_provider == "local" or has_local_chunks):
+        if has_chunks:
             retrieved = await retriever.retrieve_lexical(
                 user_id=self.user_id, course_id=payload.course_id
             )
-        elif has_chunks:
-            try:
-                query_embedding = await self.embeddings.embed_text(payload.message)
-                retrieved = await retriever.retrieve(
-                    user_id=self.user_id,
-                    course_id=payload.course_id,
-                    query_embedding=query_embedding,
-                )
-            except AppError:
-                retrieved = await retriever.retrieve_lexical(
-                    user_id=self.user_id, course_id=payload.course_id
-                )
         summary_request = any(
             term in payload.message.casefold()
             for term in ("tóm tắt", "tom tat", "tổng quan", "ý chính")

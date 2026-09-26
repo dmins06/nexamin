@@ -6,7 +6,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from redis.asyncio import Redis
 from sqlalchemy import text
@@ -16,7 +16,7 @@ from app.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.rate_limit import RateLimitMiddleware
-from app.core.storage import MEDIA_ROOT
+from app.core.storage import MEDIA_ROOT, blob_storage
 from app.database import SessionFactory
 
 logger = configure_logging()
@@ -48,9 +48,18 @@ app.add_middleware(
 )
 register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
-app.mount("/media", StaticFiles(directory=MEDIA_ROOT, check_dir=False), name="media")
+if settings.storage_provider == "blob":
+    @app.get("/media/{path:path}", include_in_schema=False)
+    async def blob_media(path: str) -> RedirectResponse:
+        return RedirectResponse(await blob_storage.public_url(path))
+else:
+    app.mount("/media", StaticFiles(directory=MEDIA_ROOT, check_dir=False), name="media")
 
 FRONTEND_ROOT = Path(__file__).resolve().parents[1] / "frontend"
+if settings.app_env == "development" and not FRONTEND_ROOT.is_dir():
+    local_build = Path(__file__).resolve().parents[2] / "dist"
+    if (local_build / "index.html").is_file():
+        FRONTEND_ROOT = local_build
 if FRONTEND_ROOT.is_dir():
     app.mount("/assets", StaticFiles(directory=FRONTEND_ROOT / "assets"), name="frontend-assets")
 

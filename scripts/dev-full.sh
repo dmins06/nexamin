@@ -34,4 +34,14 @@ else
 fi
 
 cd "$project_dir"
-npm run dev:frontend
+if command -v npm >/dev/null 2>&1; then
+  npm run dev:frontend
+elif [ -f "$project_dir/dist/index.html" ]; then
+  echo "Không tìm thấy npm. Mở bản web đã build tại http://127.0.0.1:8010"
+  if [ -n "${backend_pid:-}" ]; then
+    wait "$backend_pid"
+  fi
+else
+  echo "Chưa có npm và dist/index.html. Hãy cài Node.js/npm để build frontend."
+  exit 1
+fi

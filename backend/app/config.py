@@ -26,19 +26,17 @@ class Settings(BaseSettings):
     s3_secret_key: str = "change-me"
     s3_bucket: str = "studyhub-documents"
     s3_region: str = "us-east-1"
-    storage_provider: Literal["local", "s3"] = "local"
+    storage_provider: Literal["local", "s3", "blob"] = "local"
     media_base_url: str = "http://localhost:8010/media"
     max_upload_bytes: int = 25 * 1024 * 1024
 
-    llm_provider: Literal["auto", "local", "ollama", "openai-compatible"] = "auto"
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:4b"
-    ollama_api_key: str = ""
-    embedding_provider: Literal["local", "ollama"] = "local"
+    llm_provider: Literal["local", "gemini", "openai-compatible"] = "gemini"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.8-flash"
+    gemini_daily_user_limit: int = Field(default=5, ge=0)
     openai_compatible_base_url: str = ""
     openai_compatible_api_key: str = ""
     openai_compatible_model: str = ""
-    embedding_model: str = "nomic-embed-text"
     embedding_dimensions: int = 768
     google_client_id: str = ""
     google_client_secret: str = ""

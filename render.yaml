@@ -35,7 +35,13 @@ services:
       - key: MEDIA_BASE_URL
         value: /media
       - key: LLM_PROVIDER
-        value: local
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_DAILY_USER_LIMIT
+        value: 5
+      - key: GEMINI_API_KEY
+        sync: false
 
 databases:
   - name: studyhubai-db

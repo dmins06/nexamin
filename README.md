@@ -21,7 +21,7 @@ Logo Nexamin gốc và các biến thể dùng cho dark/light mode nằm trong `
 - Mạng xã hội học tập: bảng tin thật, status/ảnh, quyền công khai/bạn bè/riêng tư, thích, bình luận, đăng lại, tìm người dùng và xem hồ sơ.
 - Kết bạn, trạng thái online/lần hoạt động gần nhất, nhắn tin trực tiếp, gửi ảnh/tệp và chấm đỏ khi có tin nhắn chưa đọc.
 - Quản lý môn học; tải, kiểm tra và xử lý PDF, DOCX, PPTX, TXT bằng local storage hoặc S3/MinIO.
-- Emin AI hoạt động ngay ở chế độ local, dùng tài liệu đã tải để trả lời có trích dẫn; có thể đổi sang Ollama hoặc API OpenAI-compatible.
+- Emin AI dùng Gemini API để trả lời và ưu tiên tài liệu đã tải lên; có thể đổi sang chế độ local hoặc API OpenAI-compatible.
 - Quiz, chấm bài, mức độ thành thạo và gợi ý kế hoạch học.
 
 ## Công nghệ
@@ -107,26 +107,15 @@ cd backend
 Xem [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md), [DESIGN.md](DESIGN.md)
 và [AGENTS.md](AGENTS.md) để biết thêm quy ước kiến trúc và giao diện.
 
-## Chạy Emin AI với Ollama
+## Chạy Emin AI với Gemini
 
-Emin AI mặc định dùng `LLM_PROVIDER=auto`: ưu tiên Ollama; nếu Ollama chưa chạy hoặc chưa có model, chat chuyển sang chế độ trả lời dựa trên tài liệu đã tải. Chế độ dự phòng không thể tự giảng kiến thức ngoài tài liệu. Để có câu trả lời AI đầy đủ trên máy:
-
-```bash
-ollama pull qwen3:4b
-ollama serve
-npm run dev:full
-```
-
-Nếu Ollama đã chạy thì không cần gọi lại `ollama serve`. Script `dev:full` kết nối `http://127.0.0.1:11434`. Với Docker Compose, chạy service Ollama và tải model vào container:
+Tạo API key trong Google AI Studio. Khi chạy local, sao chép `backend/.env.example` thành `backend/.env` và điền `GEMINI_API_KEY` vào file này. Giữ `LLM_PROVIDER=gemini`; có thể chỉnh `GEMINI_MODEL` nếu tài khoản của bạn không dùng được model mặc định. Với Docker Compose, tạo lại backend sau khi đổi file môi trường:
 
 ```bash
-docker compose -f backend/docker-compose.yml --profile ai up -d ollama
-docker compose -f backend/docker-compose.yml exec ollama ollama pull qwen3:4b
+docker compose -f backend/docker-compose.yml up --build -d
 ```
 
-Khi backend chạy trong Docker, đặt `OLLAMA_BASE_URL=http://ollama:11434` và `LLM_PROVIDER=auto` hoặc `ollama` trong `backend/.env`. `EMBEDDING_PROVIDER=local` là mặc định: tài liệu được truy xuất bằng từ khóa, không cần tải thêm model embedding. Muốn dùng vector, đặt `EMBEDDING_PROVIDER=ollama`, tải `nomic-embed-text` và xử lý lại tài liệu; hệ thống sẽ tự dùng truy xuất từ khóa cho tài liệu cũ hoặc khi embedding không sẵn sàng.
-
-Render không thể gọi Ollama đang chạy trên máy cá nhân qua `localhost`. Blueprint hiện giữ chế độ local để không phụ thuộc dịch vụ ngoài. Nếu muốn Emin AI dùng mô hình trên Render, cần một Ollama endpoint HTTPS có thể truy cập từ Render, cấu hình `LLM_PROVIDER=ollama` (hoặc `auto`), `OLLAMA_BASE_URL` và nếu có thì `OLLAMA_API_KEY` trong Render Environment; không đưa khóa vào Git.
+Với website đang chạy, vào Render Dashboard → **studyhubai** (Web Service) → **Environment** và nhập `GEMINI_API_KEY` vào ô Value của biến cùng tên. Kiểm tra `LLM_PROVIDER=gemini`, `GEMINI_MODEL=gemini-3.8-flash` và `GEMINI_DAILY_USER_LIMIT=5`, rồi lưu và deploy lại backend. Đây là biến môi trường Render, **không phải một dòng cần ghi key vào file source code**. Blueprint chỉ hỏi giá trị `sync: false` lúc tạo service mới; với service đã tồn tại, phải thêm thủ công trong Dashboard. Frontend Vercel không cần biết key: người đã đăng nhập gọi `/api/v1/ai/chat` qua backend Render. Không đặt key trong `src/`, `.env` của Vite, `VITE_*`, Git hoặc `render.yaml` dưới dạng giá trị thật. Gemini Free có quota dùng chung cho cả project, vì vậy giới hạn 5 lượt/tài khoản/ngày không bảo đảm mọi lượt đều thành công khi Google hết quota. Nếu chưa có key, có thể đặt `LLM_PROVIDER=local` để trả lời bằng tài liệu đã xử lý; chế độ này không trả lời kiến thức ngoài tài liệu hoặc tạo quiz.
 
 ## Frontend trên Vercel
 

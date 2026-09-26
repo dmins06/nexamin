@@ -4,6 +4,7 @@ from typing import Protocol
 
 import boto3  # type: ignore[import-untyped]
 from botocore.client import BaseClient  # type: ignore[import-untyped]
+from vercel.blob import AsyncBlobClient
 
 from app.config import settings
 
@@ -12,6 +13,8 @@ MEDIA_ROOT = Path(__file__).resolve().parents[2] / "media"
 
 class StorageBackend(Protocol):
     async def upload(self, key: str, content: bytes, content_type: str) -> None: ...
+
+    async def download(self, key: str) -> bytes: ...
 
     async def delete(self, key: str) -> None: ...
 
@@ -77,5 +80,39 @@ class ObjectStorage:
         await asyncio.to_thread(self.client.delete_object, Bucket=self.bucket, Key=key)
 
 
+class BlobStorage:
+    """Vercel Blob with stable pathnames matching existing document storage keys."""
+
+    async def upload(self, key: str, content: bytes, content_type: str) -> None:
+        await AsyncBlobClient().put(
+            key, content, access="public", content_type=content_type, overwrite=True
+        )
+
+    async def download(self, key: str) -> bytes:
+        result = await AsyncBlobClient().get(key, access="public")
+        if result is None or result.stream is None:
+            raise FileNotFoundError(key)
+        return b"".join([chunk async for chunk in result.stream])
+
+    async def delete(self, key: str) -> None:
+        await AsyncBlobClient().delete(key)
+
+    async def public_url(self, key: str) -> str:
+        result = await AsyncBlobClient().head(key)
+        url = result.url
+        if not isinstance(url, str):
+            raise ValueError("Blob URL is missing")
+        return url
+
+
 storage = ObjectStorage()
 local_storage = LocalStorage()
+blob_storage = BlobStorage()
+
+
+def selected_storage() -> StorageBackend:
+    if settings.storage_provider == "s3":
+        return storage
+    if settings.storage_provider == "blob":
+        return blob_storage
+    return local_storage

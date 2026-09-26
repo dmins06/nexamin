@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getSession, login } from './api'
+import { API_BASE } from './apiBase'
 
 describe('login request', () => {
   beforeEach(() => {
@@ -19,7 +20,7 @@ describe('login request', () => {
 
     await login('student@example.com', 'correct-password')
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/login', expect.objectContaining({
+    expect(fetchMock).toHaveBeenCalledWith(`${API_BASE}/auth/login`, expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ email: 'student@example.com', password: 'correct-password' }),
     }))

@@ -1,14 +1,13 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
-from app.ai.embeddings import OllamaEmbeddingProvider
 from app.ai.providers import (
-    AutoEminProvider,
     EminLocalProvider,
-    OllamaProvider,
+    GeminiProvider,
     OpenAICompatibleProvider,
 )
 from app.ai.providers.base import LLMProvider
 from app.config import settings
+from app.core.ai_quota import enforce_gemini_quota
 from app.core.exceptions import AppError
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import ChatRequest, ChatResponse
@@ -18,10 +17,14 @@ router = APIRouter(prefix="/ai", tags=["AI Tutor"])
 
 
 def _provider() -> LLMProvider:
-    if settings.llm_provider == "auto":
-        return AutoEminProvider()
-    if settings.llm_provider == "ollama":
-        return OllamaProvider()
+    if settings.llm_provider == "gemini":
+        if not settings.gemini_api_key:
+            raise AppError(
+                "GEMINI_KEY_MISSING",
+                "Emin AI chưa được cấu hình API key Gemini. Hãy liên hệ quản trị viên.",
+                503,
+            )
+        return GeminiProvider()
     if settings.llm_provider == "openai-compatible":
         if not all(
             (
@@ -40,7 +43,9 @@ def _provider() -> LLMProvider:
 
 
 @router.post("/chat", response_model=ChatResponse)
-async def chat(payload: ChatRequest, session: DBSession, user: CurrentUser) -> ChatResponse:
-    return await TutorService(session, user.id, _provider(), OllamaEmbeddingProvider()).chat(
-        payload
-    )
+async def chat(
+    payload: ChatRequest, session: DBSession, user: CurrentUser, request: Request
+) -> ChatResponse:
+    provider = _provider()
+    await enforce_gemini_quota(request, user.id)
+    return await TutorService(session, user.id, provider).chat(payload)

@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, UploadFile
 
 from app.config import settings
 from app.core.exceptions import AppError
-from app.core.storage import local_storage, storage
+from app.core.storage import blob_storage, local_storage, storage
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import MessageResponse, PasswordChangeRequest, ProfileUpdate, UserResponse
 from app.schemas.profile import ProfileResponse
@@ -54,6 +54,9 @@ async def upload_avatar(
     content_type = {".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp"}[extension]
     if settings.storage_provider == "local":
         await local_storage.upload(key, content, content_type)
+        user.avatar_url = f"{settings.media_base_url.rstrip('/')}/{key}"
+    elif settings.storage_provider == "blob":
+        await blob_storage.upload(key, content, content_type)
         user.avatar_url = f"{settings.media_base_url.rstrip('/')}/{key}"
     else:
         await storage.upload(key, content, content_type)

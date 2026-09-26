@@ -108,6 +108,6 @@ class EminLocalProvider(LLMProvider):
     ) -> T:
         raise AppError(
             "AI_MODEL_REQUIRED",
-            "Tính năng tạo nội dung cần Ollama hoặc OpenAI-compatible provider",
+            "Tính năng tạo nội dung cần GEMINI_API_KEY hoặc OpenAI-compatible provider",
             503,
         )

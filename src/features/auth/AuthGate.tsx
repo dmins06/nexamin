@@ -25,7 +25,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sync = () => setAuthenticated(getSession() !== null)
     window.addEventListener('studyhub:auth-changed', sync)
-    if (getSession()) void workspaceApi.profile().catch(() => setAuthenticated(false))
+    if (getSession()) void workspaceApi.profile().catch(() => {
+      if (!getSession()) setAuthenticated(false)
+    })
     return () => window.removeEventListener('studyhub:auth-changed', sync)
   }, [])
 
