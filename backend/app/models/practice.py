@@ -115,8 +115,8 @@ class PracticeQuestion(UUIDMixin, TimestampMixin, Base):
 class PracticeQuestionOption(UUIDMixin, Base):
     __tablename__ = "practice_question_options"
     __table_args__ = (
-        UniqueConstraint("question_id", "option_key"),
-        UniqueConstraint("question_id", "order_index"),
+        UniqueConstraint("question_id", "option_key", name="uq_pqo_question_option_key"),
+        UniqueConstraint("question_id", "order_index", name="uq_pqo_question_order"),
     )
 
     question_id: Mapped[uuid.UUID] = mapped_column(
@@ -177,8 +177,8 @@ class PracticeAttempt(UUIDMixin, Base):
 class PracticeAttemptQuestion(UUIDMixin, Base):
     __tablename__ = "practice_attempt_questions"
     __table_args__ = (
-        UniqueConstraint("attempt_id", "order_index"),
-        UniqueConstraint("attempt_id", "question_id"),
+        UniqueConstraint("attempt_id", "order_index", name="uq_paq_attempt_order"),
+        UniqueConstraint("attempt_id", "question_id", name="uq_paq_attempt_question"),
     )
 
     attempt_id: Mapped[uuid.UUID] = mapped_column(

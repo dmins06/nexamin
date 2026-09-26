@@ -97,8 +97,8 @@ def upgrade() -> None:
         sa.Column("option_text", sa.Text(), nullable=False),
         sa.Column("is_correct", sa.Boolean(), nullable=False),
         sa.Column("order_index", sa.Integer(), nullable=False),
-        sa.UniqueConstraint("question_id", "option_key"),
-        sa.UniqueConstraint("question_id", "order_index"),
+        sa.UniqueConstraint("question_id", "option_key", name="uq_pqo_question_option_key"),
+        sa.UniqueConstraint("question_id", "order_index", name="uq_pqo_question_order"),
     )
     op.create_index("ix_practice_question_options_question_id", "practice_question_options", ["question_id"])
     op.create_table(
@@ -148,8 +148,8 @@ def upgrade() -> None:
         sa.Column("order_index", sa.Integer(), nullable=False),
         sa.Column("snapshot", sa.JSON(), nullable=False),
         sa.Column("marked_for_review", sa.Boolean(), nullable=False),
-        sa.UniqueConstraint("attempt_id", "order_index"),
-        sa.UniqueConstraint("attempt_id", "question_id"),
+        sa.UniqueConstraint("attempt_id", "order_index", name="uq_paq_attempt_order"),
+        sa.UniqueConstraint("attempt_id", "question_id", name="uq_paq_attempt_question"),
     )
     op.create_index("ix_practice_attempt_questions_attempt_id", "practice_attempt_questions", ["attempt_id"])
     op.create_table(
