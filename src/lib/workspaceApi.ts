@@ -400,7 +400,12 @@ async function authorized<T>(path: string, init: RequestInit = {}, retry = true)
     throw new Error(messageFrom(body))
   }
   if (response.status === 204) return undefined as T
-  return response.json() as Promise<T>
+  if (response.headers.get('content-type')?.includes('text/html')) {
+    throw new Error('Máy chủ đang cập nhật tính năng này. Vui lòng thử lại sau.')
+  }
+  return response.json().catch(() => {
+    throw new Error('Máy chủ trả về dữ liệu không hợp lệ. Vui lòng thử lại sau.')
+  }) as Promise<T>
 }
 
 export const workspaceApi = {

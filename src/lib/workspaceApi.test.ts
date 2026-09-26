@@ -28,4 +28,12 @@ describe('session refresh', () => {
     await expect(workspaceApi.profile()).rejects.toThrow('Phiên đăng nhập đã hết hạn')
     expect(getSession()).toBeNull()
   })
+
+  it('shows a useful message when an older backend returns the website instead of an API', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('<!doctype html>', {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    }))
+    await expect(workspaceApi.electiveAvailability()).rejects.toThrow('đang cập nhật tính năng')
+  })
 })
