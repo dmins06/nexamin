@@ -186,6 +186,151 @@ export interface TutorReply {
   citations: Array<{ document_id: string; filename: string; page: number | null; chunk_id: string }>
 }
 
+export interface PracticeSubject {
+  id: string
+  name: string
+  code: string | null
+  question_count: number
+  exam_count: number
+  completed_exams: number
+  latest_score: number | null
+  best_score: number | null
+}
+
+export interface PracticeExam {
+  id: string
+  subject_id: string
+  title: string
+  description: string | null
+  kind: string
+  question_count: number
+  time_limit_seconds: number | null
+}
+
+export interface PracticeChapter {
+  id: string
+  title: string
+  topics: Array<{ id: string; title: string }>
+}
+
+export interface PracticeQuestion {
+  id: string
+  question_id: string
+  order_index: number
+  text: string
+  question_type: 'single_choice' | 'multiple_choice' | 'true_false'
+  difficulty: string
+  chapter: string | null
+  topic: string | null
+  options: Array<{ key: string; text: string }>
+  selected_keys: string[]
+  marked_for_review: boolean
+}
+
+export interface PracticeAttempt {
+  id: string
+  exam_id: string
+  subject_id: string
+  exam_title: string
+  status: string
+  started_at: string
+  deadline_at: string | null
+  questions: PracticeQuestion[]
+}
+
+export interface PracticeResult {
+  attempt_id: string
+  exam_id: string
+  subject_id: string
+  score: number
+  correct: number
+  incorrect: number
+  unanswered: number
+  accuracy: number
+  duration_seconds: number
+  submitted_at: string
+  questions: Array<{
+    id: string
+    question_id: string
+    text: string
+    selected_keys: string[]
+    correct_keys: string[]
+    options: Array<{ key: string; text: string }>
+    is_correct: boolean
+    explanation: string
+    source_name: string
+    source_url: string | null
+    topic: string | null
+  }>
+}
+
+export interface PracticeHistory {
+  attempt_id: string
+  exam_id: string
+  subject_id: string
+  exam_title: string
+  score: number
+  submitted_at: string
+}
+
+export interface PracticeWeakTopic {
+  topic: string
+  answered: number
+  correct: number
+  accuracy: number
+}
+
+export interface ElectiveAvailability {
+  status: 'supported' | 'unsupported' | 'missing_university' | 'missing_major'
+  university_code: string | null
+  message: string
+}
+
+export interface Curriculum {
+  id: string
+  program_id: string
+  major: string
+  specialization: string
+  cohort: number
+  source_file: string
+  source_url: string | null
+  imported_at: string
+  elective_count: number
+}
+
+export interface Career {
+  code: string
+  label: string
+  skills: string[]
+}
+
+export interface ElectivePlan {
+  curriculum: Curriculum
+  career: Career
+  status: 'valid_known_rules' | 'partial'
+  selected_credits: number
+  required_credits: number | null
+  courses: Array<{
+    catalog_course_id: string
+    curriculum_course_id: string
+    code: string | null
+    name: string
+    credits: number
+    group: string
+    semester: string | null
+    academic_year: string | null
+    prerequisite: string | null
+    relevance_score: number
+    matched_skills: string[]
+    reasons: string[]
+    source_url: string | null
+  }>
+  groups: Array<{ name: string; required_credits: number | null; selected_credits: number; status: 'satisfied' | 'unresolved' }>
+  skill_coverage: Record<string, number>
+  warnings: string[]
+  explanation: string
+}
+
 interface Page<T> {
   items: T[]
   total: number
@@ -259,6 +404,37 @@ async function authorized<T>(path: string, init: RequestInit = {}, retry = true)
 }
 
 export const workspaceApi = {
+  practiceSubjects: () => authorized<PracticeSubject[]>('/practice/subjects'),
+  practiceExams: (subjectId: string) => authorized<PracticeExam[]>(`/practice/subjects/${subjectId}/exams`),
+  practiceChapters: (subjectId: string) => authorized<PracticeChapter[]>(`/practice/subjects/${subjectId}/chapters`),
+  practiceRandomExam: (subjectId: string, questionCount: number, options?: { chapterId?: string; topicId?: string; difficulty?: string; timeLimitMinutes?: number }) =>
+    authorized<PracticeExam>('/practice/exams/random', {
+      method: 'POST', body: JSON.stringify({
+        subject_id: subjectId, question_count: questionCount,
+        chapter_id: options?.chapterId || null, topic_id: options?.topicId || null,
+        difficulty: options?.difficulty || null, time_limit_minutes: options?.timeLimitMinutes || null,
+      }),
+    }),
+  practiceStart: (examId: string) => authorized<PracticeAttempt>(`/practice/exams/${examId}/start`, { method: 'POST' }),
+  practiceLoad: (attemptId: string) => authorized<PracticeAttempt>(`/practice/attempts/${attemptId}`),
+  practiceSave: (attemptId: string, questionId: string, selectedKeys: string[], markedForReview: boolean) =>
+    authorized<void>(`/practice/attempts/${attemptId}/questions/${questionId}`, {
+      method: 'PATCH', body: JSON.stringify({ selected_keys: selectedKeys, marked_for_review: markedForReview }),
+    }),
+  practiceSubmit: (attemptId: string) => authorized<PracticeResult>(`/practice/attempts/${attemptId}/submit`, { method: 'POST' }),
+  practiceMistakesExam: (attemptId: string) => authorized<PracticeExam>(`/practice/attempts/${attemptId}/mistakes-exam`, { method: 'POST' }),
+  practiceResult: (attemptId: string) => authorized<PracticeResult>(`/practice/attempts/${attemptId}/result`),
+  practiceHistory: (subjectId?: string) => authorized<PracticeHistory[]>(`/practice/history${subjectId ? `?subject_id=${subjectId}` : ''}`),
+  practiceWeakTopics: (subjectId: string) => authorized<PracticeWeakTopic[]>(`/practice/subjects/${subjectId}/weak-topics`),
+  practiceReport: (questionId: string, reason: string, comment?: string) =>
+    authorized<void>('/practice/reports', { method: 'POST', body: JSON.stringify({ question_id: questionId, reason, comment }) }),
+  electiveAvailability: () => authorized<ElectiveAvailability>('/electives/availability'),
+  electiveCurricula: () => authorized<Curriculum[]>('/electives/curricula'),
+  electiveCareers: () => authorized<Career[]>('/electives/careers'),
+  electiveRecommend: (curriculumId: string, careerCode: string) =>
+    authorized<ElectivePlan>('/electives/recommend', { method: 'POST', body: JSON.stringify({ curriculum_id: curriculumId, career_code: careerCode }) }),
+  electiveCompare: (curriculumId: string, firstCode: string, secondCode: string) =>
+    authorized<{ first: ElectivePlan; second: ElectivePlan }>('/electives/compare', { method: 'POST', body: JSON.stringify({ curriculum_id: curriculumId, first_career_code: firstCode, second_career_code: secondCode }) }),
   profile: () => authorized<UserProfile>('/auth/me'),
   fullProfile: () => authorized<UserProfile>('/users/me'),
   updateProfile: (payload: { full_name?: string; student_year?: number | null; bio?: string | null }) =>

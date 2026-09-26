@@ -1,4 +1,4 @@
-export type ViewId = 'overview' | 'courses' | 'library' | 'tutor' | 'schedule' | 'focus' | 'progress' | 'community' | 'messages' | 'profile' | 'settings'
+export type ViewId = 'overview' | 'courses' | 'library' | 'tutor' | 'schedule' | 'focus' | 'progress' | 'practice' | 'electives' | 'community' | 'messages' | 'profile' | 'settings'
 
 export interface StudyTask {
   id: string

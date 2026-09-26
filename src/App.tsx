@@ -8,6 +8,8 @@ import {
   Bot,
   Files,
   GraduationCap,
+  ClipboardList,
+  Compass,
   Settings,
   Menu,
   MessageCircle,
@@ -32,6 +34,8 @@ import { CoursesView } from "./features/workspace/AcademicCoursesView"
 import { ScheduleView } from './features/schedule/ScheduleView'
 import { CommunityFeedView, MessagesView, ProfileView } from "./features/social/SocialViews"
 import { SettingsView } from "./features/settings/SettingsView"
+import { PracticeView } from './features/practice/PracticeView'
+import { ElectivesView } from './features/electives/ElectivesView'
 import { loadStudyState, saveStudyState } from './lib/storage'
 import type { StudyState, StudyTask, ViewId } from './types'
 
@@ -40,6 +44,8 @@ const navItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
   { id: 'schedule', label: 'Lịch học', icon: CalendarDays },
   { id: 'courses', label: 'Học phần', icon: GraduationCap },
   { id: 'progress', label: 'Kế hoạch', icon: BookOpen },
+  { id: 'practice', label: 'Luyện đề', icon: ClipboardList },
+  { id: 'electives', label: 'Môn tự chọn', icon: Compass },
   { id: 'library', label: 'Ghi chú', icon: NotebookPen },
   { id: 'tutor', label: 'AI Assistant', icon: Bot },
   { id: 'community', label: 'Cộng đồng', icon: Users },
@@ -230,6 +236,8 @@ function App() {
             />
           )}
           {view === 'progress' && <ProgressView study={study} />}
+          {view === 'practice' && <PracticeView />}
+          {view === 'electives' && <ElectivesView onOpenProfile={() => navigate('profile')} />}
           {view === 'community' && <CommunityFeedView profile={profile} />}
           {view === 'messages' && <MessagesView ownId={profile?.id} onMessagesRead={refreshSocialIndicators} />}
           {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
@@ -356,6 +364,8 @@ function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, fri
     else if (/cộng đồng|bạn bè|người dùng/.test(query)) onNavigate('community')
     else if (/tin nhắn|trò chuyện/.test(query)) onNavigate('messages')
     else if (/gpa|tiến độ|kế hoạch|thống kê/.test(query)) onNavigate('progress')
+    else if (/luyện đề|ôn tập|trắc nghiệm|đề thi/.test(query)) onNavigate('practice')
+    else if (/tự chọn|định hướng nghề/.test(query)) onNavigate('electives')
     else onNavigate('courses')
     form.reset()
   }
@@ -380,7 +390,7 @@ function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, fri
         {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <UserRound size={18} />}
       </button>
     </div>
-    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => mobileNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => mobileNavigate('library')}><Files size={17} />Ghi chú</button><button onClick={() => mobileNavigate('progress')}><BarChart3 size={17} />Kế hoạch</button><button onClick={() => mobileNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => mobileNavigate('messages')}><MessageCircle size={17} />Tin nhắn</button><button onClick={() => mobileNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
+    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => mobileNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => mobileNavigate('library')}><Files size={17} />Ghi chú</button><button onClick={() => mobileNavigate('progress')}><BarChart3 size={17} />Kế hoạch</button><button onClick={() => mobileNavigate('practice')}><ClipboardList size={17} />Luyện đề</button><button onClick={() => mobileNavigate('electives')}><Compass size={17} />Môn tự chọn</button><button onClick={() => mobileNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => mobileNavigate('messages')}><MessageCircle size={17} />Tin nhắn</button><button onClick={() => mobileNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
   </header>
 }
 

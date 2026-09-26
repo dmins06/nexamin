@@ -8,7 +8,9 @@ from app.api.v1 import (
     courses,
     dashboard,
     documents,
+    electives,
     planning,
+    practice,
     quizzes,
     social,
     topics,
@@ -27,6 +29,8 @@ api_router.include_router(documents.router)
 api_router.include_router(ai.router)
 api_router.include_router(conversations.router)
 api_router.include_router(quizzes.router)
+api_router.include_router(practice.router)
+api_router.include_router(electives.router)
 api_router.include_router(social.router)
 api_router.include_router(planning.progress_router)
 api_router.include_router(planning.deadline_router)
