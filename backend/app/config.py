@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8010/api/v1/auth/google/callback"
+    public_site_url: str = "http://localhost:5173"
+    resend_api_key: str = ""
+    mail_from_email: str = ""
 
     chunk_size: int = 900
     chunk_overlap: int = 150

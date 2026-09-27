@@ -52,12 +52,49 @@ class PracticeAttemptStatus(str, enum.Enum):
     SUBMITTED = "submitted"
 
 
+class QuestionSource(UUIDMixin, TimestampMixin, Base):
+    __tablename__ = "question_sources"
+
+    name: Mapped[str] = mapped_column(String(250))
+    url: Mapped[str] = mapped_column(String(1000), unique=True)
+    source_type: Mapped[str] = mapped_column(String(40))
+    license: Mapped[str | None] = mapped_column(String(120))
+    institution: Mapped[str | None] = mapped_column(String(250))
+    rights_url: Mapped[str | None] = mapped_column(String(1000))
+    subject_hint: Mapped[str | None] = mapped_column(String(200))
+    import_status: Mapped[str] = mapped_column(String(20), default="candidate")
+    retrieved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    notes: Mapped[str | None] = mapped_column(Text)
+
+
+class PracticeImportRun(UUIDMixin, Base):
+    __tablename__ = "practice_import_runs"
+    __table_args__ = (UniqueConstraint("source_id", "content_sha256"),)
+
+    source_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("question_sources.id"))
+    content_sha256: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(20))
+    parsed_count: Mapped[int] = mapped_column(Integer)
+    imported_count: Mapped[int] = mapped_column(Integer)
+    duplicate_count: Mapped[int] = mapped_column(Integer)
+    rejected_count: Mapped[int] = mapped_column(Integer)
+    pending_count: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class PracticeSubject(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "practice_subjects"
 
     name: Mapped[str] = mapped_column(String(200), unique=True)
     code: Mapped[str | None] = mapped_column(String(40), unique=True)
     description: Mapped[str | None] = mapped_column(Text)
+
+
+class PracticeSubjectCatalogCourse(Base):
+    __tablename__ = "practice_subject_catalog_courses"
+
+    subject_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("practice_subjects.id"), primary_key=True)
+    catalog_course_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("catalog_courses.id"), primary_key=True)
 
 
 class PracticeChapter(UUIDMixin, Base):
@@ -110,6 +147,8 @@ class PracticeQuestion(UUIDMixin, TimestampMixin, Base):
         Enum(VerificationStatus, native_enum=False), default=VerificationStatus.PENDING
     )
     normalized_hash: Mapped[str] = mapped_column(String(64))
+    source_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("question_sources.id"))
+    source_external_id: Mapped[str | None] = mapped_column(String(200))
 
 
 class PracticeQuestionOption(UUIDMixin, Base):

@@ -1,5 +1,6 @@
 """Deterministic elective plans using imported curriculum constraints only."""
 
+import re
 import uuid
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from app.models.curriculum import (
 )
 from app.schemas.electives import (
     AdvisorAvailability,
+    AdvisorResolution,
     CareerComparison,
     CareerSummary,
     CurriculumSummary,
@@ -39,9 +41,29 @@ class Candidate:
     score: float
 
 
+def canonical_name(value: str) -> str:
+    normalized = fold(value.replace("đ", "d").replace("Đ", "D")).replace("&", " va ")
+    normalized = re.sub(r"[^a-z0-9]+", " ", normalized).strip()
+    return re.sub(r"\bcntt\b", "cong nghe thong tin", normalized)
+
+
 def profile_matches_program(major: str, program: AcademicProgram) -> bool:
-    profile = fold(major).removeprefix("chuyen nganh ").strip()
-    return profile in {fold(program.major_name), fold(program.specialization_name)}
+    """Resolve a profile label to an imported program without guessing courses."""
+    profile = canonical_name(major)
+    parent, separator, specialization = profile.partition(" chuyen nganh ")
+    program_major = canonical_name(program.major_name)
+    program_specialization = canonical_name(program.specialization_name)
+    if separator:
+        specialization = re.split(r"\bchuong trinh\b", specialization, maxsplit=1)[0].strip()
+        parent = parent.removeprefix("nganh ").strip()
+        return specialization == program_specialization and (not parent or parent == program_major)
+    profile = profile.removeprefix("nganh ").strip()
+    if profile in {program_major, program_specialization, canonical_name(program.program_code)}:
+        return True
+    if profile.startswith("nhom nganh "):
+        names = profile.removeprefix("nhom nganh ")
+        return bool(re.search(rf"\b{re.escape(program_major)}\b", names))
+    return False
 
 
 def relevance(skills: frozenset[str], career: CareerPath) -> float:
@@ -109,34 +131,51 @@ class ElectiveRecommendationService:
         )
 
     def _require_supported(self) -> None:
-        if self.availability().status != "supported":
-            raise AppError("ELECTIVES_UNAVAILABLE", "Gợi ý môn tự chọn chưa khả dụng cho hồ sơ này.", 403)
+        availability = self.availability()
+        if availability.status != "supported":
+            raise AppError(availability.status.upper(), availability.message, 403)
 
-    async def curricula(self) -> list[CurriculumSummary]:
-        self._require_supported()
+    async def resolve(self) -> AdvisorResolution:
+        availability = self.availability()
+        if availability.status != "supported":
+            status = "unsupported_university" if availability.status == "unsupported" else availability.status
+            return AdvisorResolution(status=status, message=availability.message, curricula=[])
+        programs = (await self.session.scalars(
+            select(AcademicProgram).where(AcademicProgram.university_id == self.user.university_id)
+        )).all()
+        matched_programs = [program for program in programs if profile_matches_program(self.user.major or "", program)]
+        if not matched_programs:
+            return AdvisorResolution(
+                status="program_not_mapped",
+                message="Ngành hoặc chuyên ngành trong hồ sơ chưa khớp CTĐT UTH đã duyệt. Hãy kiểm tra lại hồ sơ.",
+                curricula=[],
+            )
         rows = (await self.session.execute(
             select(CurriculumVersion, AcademicProgram)
             .join(AcademicProgram, CurriculumVersion.program_id == AcademicProgram.id)
             .where(
-                AcademicProgram.university_id == self.user.university_id,
+                CurriculumVersion.program_id.in_([program.id for program in matched_programs]),
                 CurriculumVersion.approved.is_(True),
             )
             .order_by(AcademicProgram.specialization_name, CurriculumVersion.cohort.desc())
         )).all()
-        matching = [(version, program) for version, program in rows if profile_matches_program(self.user.major or "", program)]
-        if not matching:
-            return []
+        if not rows:
+            return AdvisorResolution(
+                status="curriculum_not_found",
+                message="Chưa tìm thấy CTĐT đã duyệt cho ngành này. Vui lòng liên hệ quản trị viên.",
+                curricula=[],
+            )
         counts: dict[uuid.UUID, int] = {
             version_id: count for version_id, count in (await self.session.execute(
                 select(CurriculumCourse.curriculum_version_id, func.count(CurriculumCourse.id))
                 .where(
                     CurriculumCourse.course_type == "Tự chọn",
-                    CurriculumCourse.curriculum_version_id.in_([version.id for version, _ in matching]),
+                    CurriculumCourse.curriculum_version_id.in_([version.id for version, _ in rows]),
                 )
                 .group_by(CurriculumCourse.curriculum_version_id)
             )).all()
         }
-        return [
+        curricula = [
             CurriculumSummary(
                 id=version.id,
                 program_id=program.id,
@@ -148,8 +187,22 @@ class ElectiveRecommendationService:
                 imported_at=version.imported_at,
                 elective_count=counts.get(version.id, 0),
             )
-            for version, program in matching
+            for version, program in rows if counts.get(version.id, 0) > 0
         ]
+        if not curricula:
+            return AdvisorResolution(
+                status="electives_not_found",
+                message="CTĐT của ngành này chưa có môn tự chọn trong dữ liệu đã duyệt.",
+                curricula=[],
+            )
+        return AdvisorResolution(
+            status="ready",
+            message="Chọn khóa học và định hướng nghề nghiệp để xem môn tự chọn phù hợp.",
+            curricula=curricula,
+        )
+
+    async def curricula(self) -> list[CurriculumSummary]:
+        return (await self.resolve()).curricula
 
     @staticmethod
     def career_paths() -> list[CareerSummary]:
@@ -164,6 +217,8 @@ class ElectiveRecommendationService:
 
     async def recommend(self, curriculum_id: uuid.UUID, career_code: str) -> ElectivePlan:
         self._require_supported()
+        if not career_code:
+            raise AppError("CAREER_NOT_SELECTED", "Vui lòng chọn định hướng nghề nghiệp.", 422)
         career = CAREER_BY_CODE.get(career_code)
         if career is None:
             raise AppError("CAREER_NOT_FOUND", "Không tìm thấy định hướng nghề nghiệp.", 422)

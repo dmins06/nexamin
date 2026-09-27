@@ -21,6 +21,8 @@ import {
   Sparkles,
   Users,
   UserRound,
+  BadgeCheck,
+  Shield,
 } from 'lucide-react'
 import { initialStudyState } from './data'
 import { formatVietnameseDate } from './lib/format'
@@ -36,6 +38,7 @@ import { CommunityFeedView, MessagesView, ProfileView } from "./features/social/
 import { SettingsView } from "./features/settings/SettingsView"
 import { PracticeView } from './features/practice/PracticeView'
 import { ElectivesView } from './features/electives/ElectivesView'
+import { AdminView } from './features/admin/AdminView'
 import { loadStudyState, saveStudyState } from './lib/storage'
 import type { StudyState, StudyTask, ViewId } from './types'
 
@@ -242,6 +245,7 @@ function App() {
           {view === 'messages' && <MessagesView ownId={profile?.id} onMessagesRead={refreshSocialIndicators} />}
           {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
           {view === 'settings' && <SettingsView />}
+          {view === 'admin' && profile?.role === 'admin' && <AdminView ownId={profile.id} />}
         </div>
       </main>
       <MobileNav active={view} onNavigate={navigate} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
@@ -286,13 +290,14 @@ function Sidebar({ active, onNavigate, profile, unreadMessages, friendRequestCou
             </button>
           )
         })}
+        {profile?.role === 'admin' && <button className={active === 'admin' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('admin')} aria-current={active === 'admin' ? 'page' : undefined}><Shield size={19} strokeWidth={1.8} /><span>Quản trị</span></button>}
       </nav>
       <div className="sidebar-note">
         <Sparkles size={17} aria-hidden="true" />
         <p>Mỗi phiên học là một dấu mốc nhỏ.</p>
       </div>
       <div className="student-chip">
-        <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
+        <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName} {profile?.role === 'admin' && <BadgeCheck size={15} color="#48a8ff" aria-label="Quản trị viên Nexamin" />}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
         <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('settings')}><Settings size={16} /></button>
       </div>
     </aside>

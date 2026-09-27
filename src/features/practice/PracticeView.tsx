@@ -13,6 +13,15 @@ import {
 import './practice.css'
 
 const ACTIVE_ATTEMPT_KEY = 'nexamin.practice.active.v1'
+const REPORT_REASONS = [
+  ['wrong_answer', 'Sai đáp án'],
+  ['unclear', 'Câu hỏi không rõ'],
+  ['multiple_correct', 'Có nhiều đáp án đúng'],
+  ['duplicate', 'Câu hỏi trùng'],
+  ['wrong_explanation', 'Giải thích sai'],
+  ['outdated', 'Nội dung lỗi thời'],
+  ['source_issue', 'Nguồn có vấn đề'],
+] as const
 
 export function PracticeView() {
   const [subjects, setSubjects] = useState<PracticeSubject[]>([])
@@ -32,6 +41,9 @@ export function PracticeView() {
   const [busy, setBusy] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [reportReasons, setReportReasons] = useState<Record<string, string>>({})
+  const [reportingId, setReportingId] = useState('')
+  const [reportNotice, setReportNotice] = useState('')
   const [now, setNow] = useState(Date.now())
 
   useEffect(() => {
@@ -188,6 +200,7 @@ export function PracticeView() {
       {(selected || result) && !attempt && <button className="learning-quiet" onClick={() => { setSelected(null); setResult(null); setError('') }}><ArrowLeft size={17} /> Danh sách môn</button>}
     </header>
     {error && <div className="learning-alert" role="alert"><AlertCircle size={18} />{error}</div>}
+    {reportNotice && <p className="learning-status" role="status">{reportNotice}</p>}
     {busy && <p className="learning-status"><LoaderCircle className="spin" size={18} /> Đang tải…</p>}
     {result && <div className="learning-flow">
       <div className="learning-result"><CheckCircle2 size={24} /><h2>Kết quả bài làm</h2><strong>{result.score.toFixed(1)}/10</strong><p>{result.correct} đúng · {result.incorrect} sai · {result.unanswered} chưa trả lời</p>
@@ -199,7 +212,21 @@ export function PracticeView() {
         <p>{item.is_correct ? 'Trả lời đúng' : 'Cần ôn lại'} · Đáp án: {item.correct_keys.join(', ')}</p>
         <p>{item.explanation}</p>
         <small>Nguồn: {item.source_url ? <a href={item.source_url} target="_blank" rel="noreferrer">{item.source_name}</a> : item.source_name}</small>
-        <button className="learning-quiet" onClick={() => void workspaceApi.practiceReport(item.question_id, 'unclear').then(() => window.alert('Đã ghi nhận báo lỗi câu hỏi.')).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không gửi được báo lỗi.'))}><Flag size={15} /> Báo lỗi câu hỏi</button>
+        <div className="learning-report">
+          <label htmlFor={`report-${item.id}`}>Lý do báo lỗi
+            <select id={`report-${item.id}`} value={reportReasons[item.id] ?? 'unclear'} onChange={(event) => setReportReasons((current) => ({ ...current, [item.id]: event.target.value }))}>
+              {REPORT_REASONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </label>
+          <button className="learning-quiet" disabled={reportingId === item.id} onClick={() => {
+            setReportingId(item.id)
+            setReportNotice('')
+            void workspaceApi.practiceReport(item.question_id, reportReasons[item.id] ?? 'unclear')
+              .then(() => setReportNotice(`Đã ghi nhận báo lỗi câu ${index + 1}.`))
+              .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : 'Không gửi được báo lỗi.'))
+              .finally(() => setReportingId(''))
+          }}><Flag size={15} /> Gửi báo cáo</button>
+        </div>
       </article>)}
     </div>}
     {attempt && question && !result && <div className="learning-flow">

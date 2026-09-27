@@ -62,6 +62,7 @@ class SocialService:
         return PublicProfile(
             id=user.id,
             full_name=user.full_name,
+            is_admin=user.role.value == "admin" and user.is_verified,
             avatar_url=user.avatar_url,
             university=university,
             major=user.major,

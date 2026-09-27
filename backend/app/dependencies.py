@@ -10,7 +10,7 @@ from app.config import settings
 from app.core.exceptions import AppError
 from app.core.security import decode_access_token
 from app.database import get_db
-from app.models import User
+from app.models import Role, User
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_v1_prefix}/auth/login")
 DBSession = Annotated[AsyncSession, Depends(get_db)]
@@ -31,3 +31,12 @@ async def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_admin_user(user: CurrentUser) -> User:
+    if user.role != Role.ADMIN:
+        raise AppError("ADMIN_REQUIRED", "Chỉ quản trị viên được thực hiện thao tác này.", 403)
+    return user
+
+
+AdminUser = Annotated[User, Depends(get_admin_user)]

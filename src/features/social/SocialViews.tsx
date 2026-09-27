@@ -1,4 +1,4 @@
-import { Camera, Check, Globe2, Heart, ImagePlus, LoaderCircle, LockKeyhole, MessageCircle, MessageSquare, Paperclip, Pencil, Repeat2, Save, Search, Send, Trash2, UserPlus, UserRound, Users, X } from 'lucide-react'
+import { BadgeCheck, Camera, Check, Globe2, Heart, ImagePlus, LoaderCircle, LockKeyhole, MessageCircle, MessageSquare, Paperclip, Pencil, Repeat2, Save, Search, Send, Trash2, UserPlus, UserRound, Users, X } from 'lucide-react'
 import { type ChangeEvent, type FormEvent, useCallback, useEffect, useState } from 'react'
 import {
   parseMessageContent,
@@ -20,6 +20,10 @@ function Avatar({ profile }: { profile: Pick<PublicProfile, 'avatar_url' | 'full
   return profile.avatar_url
     ? <img className="social-avatar" src={profile.avatar_url} alt="" />
     : <span className="social-avatar fallback" aria-hidden="true">{initials(profile.full_name)}</span>
+}
+
+function VerifiedAdminBadge() {
+  return <BadgeCheck size={16} color="#48a8ff" aria-label="Quản trị viên Nexamin" />
 }
 
 function presenceLabel(profile: Pick<PublicProfile, 'is_online' | 'last_seen_at'>) {
@@ -86,7 +90,7 @@ export function ProfileView({ onProfileChange }: { onProfileChange?: (profile: U
   return <section className="profile-page" aria-labelledby="profile-title">
     <div className="profile-identity">
       <div className="avatar-editor"><Avatar profile={profile} /><label className="avatar-upload"><Camera size={16} /><span>Đổi ảnh</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={uploadAvatar} disabled={busy} /></label></div>
-      <div><h2 id="profile-title">{profile.full_name}</h2><p>{profile.major ?? 'Chưa chọn ngành học'}</p><span>{profile.university?.name ?? 'Chưa cập nhật trường'}</span></div>
+      <div><h2 id="profile-title">{profile.full_name}{profile.role === 'admin' && <VerifiedAdminBadge />}</h2><p>{profile.major ?? 'Chưa chọn ngành học'}</p><span>{profile.university?.name ?? 'Chưa cập nhật trường'}</span></div>
       <button className="secondary-action profile-edit-button" type="button" onClick={() => setEditing((value) => !value)} disabled={busy}>{editing ? <X size={16} /> : <Pencil size={16} />}{editing ? 'Hủy' : 'Chỉnh sửa'}</button>
     </div>
     {error && <p className="inline-error" role="alert">{error}</p>}
@@ -233,7 +237,7 @@ export function CommunityFeedView({ profile }: { profile: UserProfile | null }) 
   }
 
   const publicSelf: PublicProfile | null = profile ? {
-    id: profile.id, full_name: profile.full_name, avatar_url: profile.avatar_url,
+    id: profile.id, full_name: profile.full_name, is_admin: profile.role === 'admin' && Boolean(profile.is_verified), avatar_url: profile.avatar_url,
     university: profile.university, major: profile.major, student_year: profile.student_year,
     bio: profile.bio, friendship_id: null, friendship_status: null, request_incoming: false,
     is_online: true, last_seen_at: null,
@@ -250,7 +254,7 @@ export function CommunityFeedView({ profile }: { profile: UserProfile | null }) 
       <aside className="social-discovery" aria-label="Tìm người dùng">
         {publicSelf && <button className="social-self" type="button" onClick={() => void openProfile(publicSelf)}><Avatar profile={publicSelf} /><span><strong>{publicSelf.full_name}</strong><small>Xem trang cá nhân</small></span></button>}
         <form className="social-user-search" onSubmit={searchPeople}><Search size={17} aria-hidden="true" /><input name="query" aria-label="Tìm người dùng theo tên" placeholder="Tìm người dùng…" autoComplete="off" /><button type="submit" disabled={busy} aria-label="Tìm"><Search size={16} /></button></form>
-        {searched && <div className="social-search-results"><h3>Kết quả tìm kiếm</h3>{people.length === 0 ? <p>Không tìm thấy tên phù hợp.</p> : people.map((person) => <button type="button" key={person.id} onClick={() => void openProfile(person)}><Avatar profile={person} /><span><strong>{person.full_name}</strong><small>{person.university?.short_name ?? person.major ?? 'Sinh viên'}</small></span></button>)}</div>}
+        {searched && <div className="social-search-results"><h3>Kết quả tìm kiếm</h3>{people.length === 0 ? <p>Không tìm thấy tên phù hợp.</p> : people.map((person) => <button type="button" key={person.id} onClick={() => void openProfile(person)}><Avatar profile={person} /><span><strong>{person.full_name}{person.is_admin && <VerifiedAdminBadge />}</strong><small>{person.university?.short_name ?? person.major ?? 'Sinh viên'}</small></span></button>)}</div>}
       </aside>
       <main className="social-feed-column">
         {!selectedProfile && <form className="social-composer" onSubmit={publish}>
@@ -268,7 +272,7 @@ export function CommunityFeedView({ profile }: { profile: UserProfile | null }) 
         </div>
       </main>
       <aside className="social-profile-panel" aria-label="Hồ sơ đang xem">
-        {viewedProfile ? <><div className="social-profile-cover" aria-hidden="true"><span /></div><div className="social-profile-body"><Avatar profile={viewedProfile} /><h3>{viewedProfile.full_name}</h3><p>{viewedProfile.bio ?? 'Chưa có phần giới thiệu.'}</p><dl><div><dt>Trường</dt><dd>{viewedProfile.university?.name ?? 'Chưa cập nhật'}</dd></div><div><dt>Ngành</dt><dd>{viewedProfile.major ?? 'Chưa cập nhật'}</dd></div>{viewedProfile.student_year && <div><dt>Năm học</dt><dd>Năm {viewedProfile.student_year}</dd></div>}</dl><span className={viewedProfile.is_online ? 'presence online' : 'presence'}><i aria-hidden="true" />{presenceLabel(viewedProfile)}</span>{selectedProfile && <FriendAction profile={selectedProfile} busy={busy} onAct={actRelationship} />}</div></> : <div className="social-profile-placeholder"><UserRound size={28} /><p>Chọn một người để xem hồ sơ.</p></div>}
+        {viewedProfile ? <><div className="social-profile-cover" aria-hidden="true"><span /></div><div className="social-profile-body"><Avatar profile={viewedProfile} /><h3>{viewedProfile.full_name}{viewedProfile.is_admin && <VerifiedAdminBadge />}</h3><p>{viewedProfile.bio ?? 'Chưa có phần giới thiệu.'}</p><dl><div><dt>Trường</dt><dd>{viewedProfile.university?.name ?? 'Chưa cập nhật'}</dd></div><div><dt>Ngành</dt><dd>{viewedProfile.major ?? 'Chưa cập nhật'}</dd></div>{viewedProfile.student_year && <div><dt>Năm học</dt><dd>Năm {viewedProfile.student_year}</dd></div>}</dl><span className={viewedProfile.is_online ? 'presence online' : 'presence'}><i aria-hidden="true" />{presenceLabel(viewedProfile)}</span>{selectedProfile && <FriendAction profile={selectedProfile} busy={busy} onAct={actRelationship} />}</div></> : <div className="social-profile-placeholder"><UserRound size={28} /><p>Chọn một người để xem hồ sơ.</p></div>}
       </aside>
     </div>
   </section>
@@ -285,7 +289,7 @@ function SocialPostCard({ post, ownId, busy, onAuthor, onLike, onComment, onRepo
     await onComment(value); setComment('')
   }
   return <article className="social-post">
-    <header><button type="button" className="social-post-author" onClick={() => void onAuthor(post.author)}><Avatar profile={post.author} /><span><strong>{post.author.full_name}</strong><small>{post.author.university?.short_name ?? post.author.major ?? 'Sinh viên'}</small></span></button><span className="social-post-meta"><span>{socialTime(post.created_at)}</span><span><VisibilityMark value={post.visibility} /></span></span>{post.author.id === ownId && <button type="button" className="social-post-delete" onClick={() => void onDelete()} disabled={busy} aria-label="Xóa bài viết"><Trash2 size={16} /></button>}</header>
+    <header><button type="button" className="social-post-author" onClick={() => void onAuthor(post.author)}><Avatar profile={post.author} /><span><strong>{post.author.full_name}{post.author.is_admin && <VerifiedAdminBadge />}</strong><small>{post.author.university?.short_name ?? post.author.major ?? 'Sinh viên'}</small></span></button><span className="social-post-meta"><span>{socialTime(post.created_at)}</span><span><VisibilityMark value={post.visibility} /></span></span>{post.author.id === ownId && <button type="button" className="social-post-delete" onClick={() => void onDelete()} disabled={busy} aria-label="Xóa bài viết"><Trash2 size={16} /></button>}</header>
     {post.content && <p className="social-post-content">{post.content}</p>}
     {post.image_url && <a className="social-post-image" href={post.image_url} target="_blank" rel="noreferrer"><img src={post.image_url} alt="Ảnh trong bài viết của người dùng" /></a>}
     {post.repost_of && <div className="social-repost-preview"><button type="button" onClick={() => void onAuthor(post.repost_of!.author)}><Avatar profile={post.repost_of.author} /><strong>{post.repost_of.author.full_name}</strong></button>{post.repost_of.content && <p>{post.repost_of.content}</p>}{post.repost_of.image_url && <img src={post.repost_of.image_url} alt="Ảnh trong bài viết gốc" />}</div>}

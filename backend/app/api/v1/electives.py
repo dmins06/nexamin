@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.dependencies import CurrentUser, DBSession
 from app.schemas.electives import (
     AdvisorAvailability,
+    AdvisorResolution,
     CareerComparison,
     CareerSummary,
     ComparisonRequest,
@@ -23,6 +24,11 @@ async def availability(session: DBSession, user: CurrentUser) -> AdvisorAvailabi
 @router.get("/curricula", response_model=list[CurriculumSummary])
 async def curricula(session: DBSession, user: CurrentUser) -> list[CurriculumSummary]:
     return await ElectiveRecommendationService(session, user).curricula()
+
+
+@router.get("/resolution", response_model=AdvisorResolution)
+async def resolution(session: DBSession, user: CurrentUser) -> AdvisorResolution:
+    return await ElectiveRecommendationService(session, user).resolve()
 
 
 @router.get("/careers", response_model=list[CareerSummary])

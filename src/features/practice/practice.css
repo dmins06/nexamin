@@ -50,6 +50,8 @@
 .learning-question-nav button.is-answered { background: var(--surface-soft); }
 .learning-question { padding: clamp(20px, 3vw, 30px); border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
 .learning-question h3 { line-height: 1.5; }
+.learning-report { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-top: 18px; }
+.learning-report label { display: grid; gap: 7px; min-width: min(100%, 220px); font-weight: 600; }
 .learning-question fieldset { padding: 0; margin: 24px 0; border: 0; }
 .learning-question legend { color: var(--text-muted); font-size: 13px; margin-bottom: 12px; }
 .learning-option { display: flex; align-items: flex-start; gap: 12px; padding: 13px 15px; border: 1px solid var(--border); border-radius: 11px; margin-top: 8px; cursor: pointer; }

@@ -89,6 +89,12 @@ export function clearSession() {
   window.dispatchEvent(new Event('studyhub:auth-changed'))
 }
 
+export function resetPassword(token: string, newPassword: string) {
+  return request<{ message: string }>('/auth/reset-password', {
+    method: 'POST', body: JSON.stringify({ token, new_password: newPassword }),
+  })
+}
+
 export async function searchUniversities(query: string, signal?: AbortSignal) {
   const params = new URLSearchParams({ page: '1', page_size: '30' })
   const path = query.trim()

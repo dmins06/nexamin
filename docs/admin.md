@@ -1,0 +1,9 @@
+# Quản trị Nexamin
+
+Tài khoản chủ sở hữu đã được xác minh và cấp vai trò `ADMIN` trên cơ sở dữ liệu Render sau khi sao lưu. Không đặt email quản trị cố định trong logic phân quyền: API chỉ tin vai trò ở PostgreSQL. Script `backend/scripts/grant_owner_admin.py` nhận email và tên cụ thể khi chạy, kiểm tra cả hai trước khi cấp quyền, không in URL/mật khẩu DB.
+
+Mục Quản trị xuất hiện khi tài khoản admin đăng nhập lại sau khi backend/frontend mới được triển khai. Có thể tìm người dùng, khóa/mở khóa tài khoản và gửi hỗ trợ đặt lại mật khẩu. Không thể khóa admin. Khóa tài khoản thu hồi refresh token và mọi API/WebSocket đều kiểm tra `is_active` từ DB, nên access token cũ không thể tiếp tục dùng. Admin không thể đọc mật khẩu hoặc reset token từ bất kỳ API nào.
+
+Để bật nút gửi email đặt lại trên Render Free, dùng Resend HTTP API (Render Free chặn cổng SMTP). Xác minh quyền sở hữu domain gửi thư trong Resend rồi đặt riêng trong Render Environment: `PUBLIC_SITE_URL=https://nexamin.id.vn`, `RESEND_API_KEY` (khóa chỉ có quyền gửi), `MAIL_FROM_EMAIL` (địa chỉ thuộc domain đã xác minh). Không đưa khóa vào Git. Khi chưa cấu hình đầy đủ, API trả 503 và giao diện vô hiệu hóa nút. Liên kết gửi trực tiếp tới email người dùng, hiệu lực 30 phút, hết hiệu lực sau khi đổi mật khẩu; tất cả refresh token cũ bị thu hồi. Tài khoản Google-only chưa có mật khẩu cần tiếp tục dùng Google.
+
+Mục Ngân hàng đề nhận `QuestionPackage` JSON với `subject_name`, `source` và `questions`. Nguồn web cần có bản ghi `question_sources` được duyệt qua CLI `practice_sources.py`; tài liệu do người quản trị tự cung cấp phải có quyền sử dụng (`reuse_confirmed`). Câu nhập ở trạng thái pending, phải kiểm tra nguồn và đáp án rồi duyệt, sau đó chọn những câu cùng môn để xuất bản đề. Câu tự luận chưa có đáp án chấm máy không thể duyệt thành đề trắc nghiệm.

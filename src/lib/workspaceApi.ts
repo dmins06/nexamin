@@ -57,9 +57,31 @@ export interface UserProfile {
   }
 }
 
+export interface AdminUser {
+  id: string
+  email: string
+  full_name: string
+  role: 'student' | 'admin'
+  is_active: boolean
+  is_verified: boolean
+  created_at: string
+}
+
+export interface AdminPendingQuestion {
+  id: string
+  subject_id: string
+  question_text: string
+  source_name: string
+  source_url: string | null
+  source_license: string
+  explanation: string
+  options: Array<{ key: string; text: string; correct: boolean }>
+}
+
 export interface PublicProfile {
   id: string
   full_name: string
+  is_admin?: boolean
   avatar_url: string | null
   university: UserProfile['university']
   major: string | null
@@ -298,6 +320,12 @@ export interface Curriculum {
   elective_count: number
 }
 
+export interface ElectiveResolution {
+  status: 'ready' | 'missing_university' | 'unsupported_university' | 'missing_major' | 'program_not_mapped' | 'curriculum_not_found' | 'electives_not_found'
+  message: string
+  curricula: Curriculum[]
+}
+
 export interface Career {
   code: string
   label: string
@@ -434,6 +462,7 @@ export const workspaceApi = {
   practiceReport: (questionId: string, reason: string, comment?: string) =>
     authorized<void>('/practice/reports', { method: 'POST', body: JSON.stringify({ question_id: questionId, reason, comment }) }),
   electiveAvailability: () => authorized<ElectiveAvailability>('/electives/availability'),
+  electiveResolution: () => authorized<ElectiveResolution>('/electives/resolution'),
   electiveCurricula: () => authorized<Curriculum[]>('/electives/curricula'),
   electiveCareers: () => authorized<Career[]>('/electives/careers'),
   electiveRecommend: (curriculumId: string, careerCode: string) =>
@@ -446,6 +475,16 @@ export const workspaceApi = {
     authorized<UserProfile>('/users/me', { method: 'PATCH', body: JSON.stringify(payload) }),
   changePassword: (payload: { current_password: string; new_password: string }) =>
     authorized<{ message: string }>("/users/me/change-password", { method: "POST", body: JSON.stringify(payload) }),
+  adminCapabilities: () => authorized<{ mail_enabled: boolean }>('/admin/capabilities'),
+  adminUsers: (query: string) => authorized<AdminUser[]>(`/admin/users?q=${encodeURIComponent(query)}`),
+  adminLock: (id: string) => authorized<AdminUser>(`/admin/users/${id}/lock`, { method: 'POST' }),
+  adminUnlock: (id: string) => authorized<AdminUser>(`/admin/users/${id}/unlock`, { method: 'POST' }),
+  adminResetHelp: (id: string) => authorized<{ message: string }>(`/admin/users/${id}/reset-help`, { method: 'POST' }),
+  adminImportQuestions: (payload: unknown) => authorized<{ imported: number; duplicates: number }>('/admin/practice/import', { method: 'POST', body: JSON.stringify(payload) }),
+  adminPendingQuestions: () => authorized<AdminPendingQuestion[]>('/admin/practice/pending'),
+  adminVerifiedQuestions: () => authorized<AdminPendingQuestion[]>('/admin/practice/verified'),
+  adminReviewQuestion: (id: string, action: 'verify' | 'reject') => authorized<{ message: string }>(`/admin/practice/questions/${id}/${action}`, { method: 'POST' }),
+  adminPublishExam: (payload: { subject_id: string; title: string; question_ids: string[] }) => authorized<{ message: string }>('/admin/practice/exams', { method: 'POST', body: JSON.stringify(payload) }),
   uploadAvatar: (file: File) => {
     const form = new FormData()
     form.set('avatar', file)

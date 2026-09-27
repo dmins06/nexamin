@@ -136,5 +136,6 @@ class PracticeQuestionReportCreate(BaseModel):
         "wrong_explanation",
         "duplicate",
         "outdated",
+        "source_issue",
     ]
     comment: str | None = Field(default=None, max_length=1000)

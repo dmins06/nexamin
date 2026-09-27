@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import AppError
@@ -94,9 +95,11 @@ async def test_advisor_requires_uth_and_matching_program(
         name="Trường khác", short_name="KHAC", official_code="OTHER"
     )
     assert ElectiveRecommendationService(session, second).availability().status == "unsupported"
-    with pytest.raises(AppError, match="chưa khả dụng"):
+    assert (await ElectiveRecommendationService(session, second).resolve()).status == "unsupported_university"
+    with pytest.raises(AppError, match="chỉ khả dụng"):
         await ElectiveRecommendationService(session, second).recommend(version.id, "ai_engineer")
     first.major = "Ngành không liên quan"
+    assert (await service.resolve()).status == "program_not_mapped"
     assert await service.curricula() == []
     with pytest.raises(AppError, match="không phù hợp"):
         await service.recommend(version.id, "ai_engineer")
@@ -130,3 +133,20 @@ async def test_unknown_curriculum_is_rejected(
     await make_catalog(session, first)
     with pytest.raises(AppError, match="không phù hợp"):
         await ElectiveRecommendationService(session, first).recommend(uuid.uuid4(), "ai_engineer")
+
+
+@pytest.mark.asyncio
+async def test_curriculum_and_electives_missing_have_distinct_reasons(
+    session: AsyncSession, users: tuple[User, User]
+) -> None:
+    first, _ = users
+    version, _, _ = await make_catalog(session, first)
+    service = ElectiveRecommendationService(session, first)
+    version.approved = False
+    await session.commit()
+    assert (await service.resolve()).status == "curriculum_not_found"
+    version.approved = True
+    for course in (await session.scalars(select(CurriculumCourse))).all():
+        course.course_type = "Bắt buộc"
+    await session.commit()
+    assert (await service.resolve()).status == "electives_not_found"

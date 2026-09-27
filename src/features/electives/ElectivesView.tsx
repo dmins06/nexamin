@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { AlertCircle, ArrowRight, BookOpen, CheckCircle2, ExternalLink, GraduationCap, LoaderCircle } from 'lucide-react'
-import { workspaceApi, type Career, type Curriculum, type ElectiveAvailability, type ElectivePlan } from '../../lib/workspaceApi'
+import { workspaceApi, type Career, type Curriculum, type ElectiveAvailability, type ElectivePlan, type ElectiveResolution } from '../../lib/workspaceApi'
 import '../practice/practice.css'
 
 export function ElectivesView({ onOpenProfile }: { onOpenProfile: () => void }) {
   const [availability, setAvailability] = useState<ElectiveAvailability | null>(null)
+  const [resolution, setResolution] = useState<ElectiveResolution | null>(null)
   const [curricula, setCurricula] = useState<Curriculum[]>([])
   const [careers, setCareers] = useState<Career[]>([])
   const [curriculumId, setCurriculumId] = useState('')
@@ -21,15 +22,15 @@ export function ElectivesView({ onOpenProfile }: { onOpenProfile: () => void }) 
       if (!active) return
       setAvailability(info)
       if (info.status !== 'supported') return
-      const [versions, paths] = await Promise.all([
-        workspaceApi.electiveCurricula(),
+      const [result, paths] = await Promise.all([
+        workspaceApi.electiveResolution(),
         workspaceApi.electiveCareers(),
       ])
       if (!active) return
-      setCurricula(versions)
+      setResolution(result)
+      setCurricula(result.curricula)
       setCareers(paths)
-      setCurriculumId(versions[0]?.id ?? '')
-      setCareerCode(paths[0]?.code ?? '')
+      setCurriculumId(result.curricula.length === 1 ? result.curricula[0]?.id ?? '' : '')
     }).catch((reason: unknown) => {
       if (active) setError(reason instanceof Error ? reason.message : 'Không tải được dữ liệu chương trình.')
     }).finally(() => { if (active) setBusy(false) })
@@ -77,20 +78,22 @@ export function ElectivesView({ onOpenProfile }: { onOpenProfile: () => void }) 
       <p>{availability.message}</p>
       {(availability.status === 'missing_university' || availability.status === 'missing_major') && <button className="learning-primary" onClick={onOpenProfile}>Cập nhật hồ sơ <ArrowRight size={16} /></button>}
     </div>}
-    {availability?.status === 'supported' && !busy && <div className="learning-flow">
-      {curricula.length === 0 ? <div className="learning-empty">
-        <BookOpen size={32} /><h2>Chưa tìm thấy CTĐT phù hợp</h2>
-        <p>Ngành hoặc chuyên ngành trong hồ sơ chưa khớp dữ liệu UTH đã duyệt. Hãy kiểm tra lại hồ sơ; hệ thống không gợi ý từ ngành khác.</p>
-        <button className="learning-primary" onClick={onOpenProfile}>Xem hồ sơ <ArrowRight size={16} /></button>
+    {availability?.status === 'supported' && !busy && !error && <div className="learning-flow">
+      {resolution?.status !== 'ready' ? <div className="learning-empty">
+        <BookOpen size={32} /><h2>Chưa thể gợi ý môn tự chọn</h2>
+        <p>{resolution?.message ?? 'Không tải được chương trình đào tạo. Vui lòng thử lại.'}</p>
+        {resolution?.status === 'program_not_mapped' && <button className="learning-primary" onClick={onOpenProfile}>Kiểm tra hồ sơ <ArrowRight size={16} /></button>}
       </div> : <>
         <form className="learning-selector" onSubmit={(event) => { event.preventDefault(); void recommend() }}>
-          <label>Chương trình đào tạo
-            <select value={curriculumId} onChange={(event) => { setCurriculumId(event.target.value); setPlan(null); setComparison(null) }}>
-              {curricula.map((item) => <option key={item.id} value={item.id}>{item.specialization} · Khóa {item.cohort} · {item.source_file}</option>)}
+          <label>Chuyên ngành và khóa học
+            <select value={curriculumId} required onChange={(event) => { setCurriculumId(event.target.value); setPlan(null); setComparison(null) }}>
+              {curricula.length > 1 && <option value="">Chọn chuyên ngành và khóa học</option>}
+              {curricula.map((item) => <option key={item.id} value={item.id}>{item.specialization} · Khóa {item.cohort}</option>)}
             </select>
           </label>
           <label>Định hướng nghề nghiệp
-            <select value={careerCode} onChange={(event) => { setCareerCode(event.target.value); setPlan(null); setComparison(null) }}>
+            <select value={careerCode} required onChange={(event) => { setCareerCode(event.target.value); setPlan(null); setComparison(null) }}>
+              <option value="">Chọn định hướng nghề nghiệp</option>
               {careers.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
             </select>
           </label>

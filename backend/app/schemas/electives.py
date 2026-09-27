@@ -23,6 +23,15 @@ class CurriculumSummary(BaseModel):
     elective_count: int
 
 
+class AdvisorResolution(BaseModel):
+    status: Literal[
+        "ready", "missing_university", "unsupported_university", "missing_major",
+        "program_not_mapped", "curriculum_not_found", "electives_not_found",
+    ]
+    message: str
+    curricula: list[CurriculumSummary]
+
+
 class CareerSummary(BaseModel):
     code: str
     label: str

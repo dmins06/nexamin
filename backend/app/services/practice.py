@@ -2,6 +2,7 @@
 
 import hashlib
 import random
+import re
 import unicodedata
 import uuid
 from collections import defaultdict
@@ -66,7 +67,10 @@ class QuestionSnapshot(BaseModel):
 
 
 def normalized_question_hash(subject_id: uuid.UUID, text: str) -> str:
-    normalized = " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+    folded = unicodedata.normalize("NFD", unicodedata.normalize("NFKC", text).casefold().replace("đ", "d"))
+    normalized = " ".join(re.findall(r"[a-z0-9]+", "".join(
+        char for char in folded if not unicodedata.combining(char)
+    )))
     return hashlib.sha256(f"{subject_id}:{normalized}".encode()).hexdigest()
 
 

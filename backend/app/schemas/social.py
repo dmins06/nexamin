@@ -9,6 +9,7 @@ from app.schemas.auth import UniversitySummary
 class PublicProfile(BaseModel):
     id: uuid.UUID
     full_name: str
+    is_admin: bool = False
     avatar_url: str | None
     university: UniversitySummary | None
     major: str | None

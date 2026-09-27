@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.v1 import (
+    admin,
     ai,
     auth,
     auth_google,
@@ -20,6 +21,7 @@ from app.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
+api_router.include_router(admin.router)
 api_router.include_router(auth_google.router)
 api_router.include_router(users.router)
 api_router.include_router(universities.router)

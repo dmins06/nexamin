@@ -4,34 +4,37 @@ import { AmbientOrbit } from '../../components/AmbientOrbit'
 import { CosmicBackdrop } from '../../components/CosmicBackdrop'
 import { MobileSplash } from '../../components/MobileSplash'
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react'
-import { getSession, login, register, type University } from '../../lib/api'
+import { clearSession, getSession, login, register, resetPassword, type University } from '../../lib/api'
 import { UniversityPicker } from './UniversityPicker'
 import { MajorPicker } from './MajorPicker'
 import type { MajorOption } from '../../lib/majorCatalog'
 import { workspaceApi } from '../../lib/workspaceApi'
 
-type Mode = 'login' | 'register'
+type Mode = 'login' | 'register' | 'reset'
 
 export function AuthGate({ children }: { children: ReactNode }) {
+  const [resetToken] = useState(() => new URLSearchParams(window.location.search).get('reset_token'))
   const [authenticated, setAuthenticated] = useState(() => getSession() !== null)
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(() => resetToken ? 'reset' : 'login')
   const [showPassword, setShowPassword] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [university, setUniversity] = useState<University | null>(null)
   const [major, setMajor] = useState<MajorOption | null>(null)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark')
 
   useEffect(() => {
+    if (resetToken) window.history.replaceState({}, '', window.location.pathname)
     const sync = () => setAuthenticated(getSession() !== null)
     window.addEventListener('studyhub:auth-changed', sync)
     if (getSession()) void workspaceApi.profile().catch(() => {
       if (!getSession()) setAuthenticated(false)
     })
     return () => window.removeEventListener('studyhub:auth-changed', sync)
-  }, [])
+  }, [resetToken])
 
-  if (authenticated) return <>{children}</>
+  if (authenticated && mode !== 'reset') return <>{children}</>
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -43,6 +46,16 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
     setBusy(true)
     try {
+      if (mode === 'reset') {
+        if (!resetToken) throw new Error('Liên kết đặt lại mật khẩu không hợp lệ.')
+        const next = String(data.get('password'))
+        if (next !== String(data.get('confirmation'))) throw new Error('Mật khẩu xác nhận chưa khớp.')
+        await resetPassword(resetToken, next)
+        clearSession()
+        setNotice('Đã đổi mật khẩu. Hãy đăng nhập bằng mật khẩu mới.')
+        setMode('login')
+        return
+      }
       const email = String(data.get('email'))
       const password = String(data.get('password'))
       if (mode === 'login') await login(email, password)
@@ -96,14 +109,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
       <section className="auth-panel">
         <div className="auth-card">
-          <div className="auth-tabs" role="tablist" aria-label="Tài khoản">
+          {mode !== 'reset' && <div className="auth-tabs" role="tablist" aria-label="Tài khoản">
             <button role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')}>Đăng nhập</button>
             <button role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')}>Tạo tài khoản</button>
-          </div>
+          </div>}
           <header>
-            <p className="folio">{mode === 'login' ? 'Chào bạn trở lại' : 'Bắt đầu hành trình'}</p>
-            <h2>{mode === 'login' ? 'Tiếp tục buổi học' : 'Tạo góc học tập của bạn'}</h2>
-            <p>{mode === 'login' ? 'Đăng nhập để mở kế hoạch hôm nay.' : 'Chọn đúng trường để cá nhân hóa môn học và cộng đồng.'}</p>
+            <p className="folio">{mode === 'reset' ? 'Bảo mật tài khoản' : mode === 'login' ? 'Chào bạn trở lại' : 'Bắt đầu hành trình'}</p>
+            <h2>{mode === 'reset' ? 'Đặt lại mật khẩu' : mode === 'login' ? 'Tiếp tục buổi học' : 'Tạo góc học tập của bạn'}</h2>
+            <p>{mode === 'reset' ? 'Liên kết chỉ có hiệu lực trong 30 phút và hết hiệu lực sau khi đổi.' : mode === 'login' ? 'Đăng nhập để mở kế hoạch hôm nay.' : 'Chọn đúng trường để cá nhân hóa môn học và cộng đồng.'}</p>
           </header>
           <form onSubmit={submit}>
             {mode === 'register' && (
@@ -116,12 +129,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
                 </div>
               </>
             )}
-            <label>Email<div className="auth-input"><Mail size={17} /><input name="email" type="email" required autoComplete="email" placeholder="ban@university.edu.vn" /></div></label>
-            <label>Mật khẩu<div className="auth-input"><LockKeyhole size={17} /><input name="password" type={showPassword ? 'text' : 'password'} required minLength={mode === 'register' ? 6 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={mode === 'register' ? 'Ít nhất 6 ký tự' : 'Nhập mật khẩu'} /><button type="button" onClick={() => setShowPassword((shown) => !shown)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>
+            {mode !== 'reset' && <label>Email<div className="auth-input"><Mail size={17} /><input name="email" type="email" required autoComplete="email" placeholder="ban@university.edu.vn" /></div></label>}
+            <label>{mode === 'reset' ? 'Mật khẩu mới' : 'Mật khẩu'}<div className="auth-input"><LockKeyhole size={17} /><input name="password" type={showPassword ? 'text' : 'password'} required minLength={mode === 'reset' ? 8 : mode === 'register' ? 6 : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} placeholder={mode === 'reset' ? 'Ít nhất 8 ký tự' : mode === 'register' ? 'Ít nhất 6 ký tự' : 'Nhập mật khẩu'} /><button type="button" onClick={() => setShowPassword((shown) => !shown)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>
+            {mode === 'reset' && <label>Xác nhận mật khẩu<div className="auth-input"><LockKeyhole size={17} /><input name="confirmation" type="password" required minLength={8} autoComplete="new-password" /></div></label>}
             {error && <p className="auth-error" role="alert">{error}</p>}
-            <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Đang xử lý…' : mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}<ArrowRight size={17} /></button>
+            {notice && <p role="status">{notice}</p>}
+            <button className="auth-submit" type="submit" disabled={busy}>{busy ? 'Đang xử lý…' : mode === 'reset' ? 'Đổi mật khẩu' : mode === 'login' ? 'Đăng nhập' : 'Tạo tài khoản'}<ArrowRight size={17} /></button>
           </form>
-          <p className="auth-switch">{mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'} <button onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}>{mode === 'login' ? 'Đăng ký ngay' : 'Đăng nhập'}</button></p>
+          {mode !== 'reset' && <p className="auth-switch">{mode === 'login' ? 'Chưa có tài khoản?' : 'Đã có tài khoản?'} <button onClick={() => switchMode(mode === 'login' ? 'register' : 'login')}>{mode === 'login' ? 'Đăng ký ngay' : 'Đăng nhập'}</button></p>}
         </div>
       </section>
     </main>
