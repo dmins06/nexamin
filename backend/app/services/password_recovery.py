@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 import httpx
 import jwt
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -70,7 +70,7 @@ async def reset_password(session: AsyncSession, token: str, new_password: str) -
         user_id = uuid.UUID(payload["sub"])
     except (jwt.PyJWTError, KeyError, ValueError, TypeError) as exc:
         raise AppError("INVALID_RESET_TOKEN", "Liên kết đặt lại không hợp lệ hoặc đã hết hạn.", 400) from exc
-    user = await session.get(User, user_id)
+    user = await session.scalar(select(User).where(User.id == user_id).with_for_update())
     if user is None or not user.is_active or payload.get("fingerprint") != _fingerprint(user):
         raise AppError("INVALID_RESET_TOKEN", "Liên kết đặt lại không hợp lệ hoặc đã dùng.", 400)
     user.password_hash = hash_password(new_password)

@@ -22,6 +22,10 @@ jobs:
           RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
         run: |
           set -euo pipefail
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then
+            echo "::notice::Render API secrets are not configured; Render's Git auto-deploy handles this push."
+            exit 0
+          fi
           echo "Triggering deploy for $RENDER_SERVICE_ID"
           resp=$(curl -s -X POST "https://api.render.com/v1/services/${RENDER_SERVICE_ID}/deploys" -H "Authorization: Bearer ${RENDER_API_KEY}" -H "Content-Type: application/json" -d '{}')
           echo "$resp"
