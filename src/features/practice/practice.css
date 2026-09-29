@@ -63,6 +63,7 @@
 .learning-selector { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: end; gap: 12px; }
 .learning-selector label { display: grid; gap: 7px; min-width: 0; font-weight: 600; }
 .learning-selector select { width: 100%; }
+.learning-selector .learning-source { grid-column: 1 / -1; margin: 0; overflow-wrap: anywhere; }
 .learning-plan { min-width: 0; padding: clamp(20px, 3vw, 30px); border: 1px solid var(--border); border-radius: 16px; background: var(--surface); }
 .learning-plan-head h2, .learning-plan-head p { margin: 0; }
 .learning-badge { display: inline-block; border-radius: 99px; padding: 7px 10px; font-size: 12px; font-weight: 700; }

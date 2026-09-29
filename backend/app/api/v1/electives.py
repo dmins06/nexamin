@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter
 
 from app.dependencies import CurrentUser, DBSession
@@ -32,8 +34,8 @@ async def resolution(session: DBSession, user: CurrentUser) -> AdvisorResolution
 
 
 @router.get("/careers", response_model=list[CareerSummary])
-async def careers(session: DBSession, user: CurrentUser) -> list[CareerSummary]:
-    return ElectiveRecommendationService(session, user).career_paths()
+async def careers(curriculum_id: uuid.UUID, session: DBSession, user: CurrentUser) -> list[CareerSummary]:
+    return await ElectiveRecommendationService(session, user).career_paths(curriculum_id)
 
 
 @router.post("/recommend", response_model=ElectivePlan)

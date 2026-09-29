@@ -22,20 +22,33 @@ export function ElectivesView({ onOpenProfile }: { onOpenProfile: () => void }) 
       if (!active) return
       setAvailability(info)
       if (info.status !== 'supported') return
-      const [result, paths] = await Promise.all([
-        workspaceApi.electiveResolution(),
-        workspaceApi.electiveCareers(),
-      ])
+      const result = await workspaceApi.electiveResolution()
       if (!active) return
       setResolution(result)
       setCurricula(result.curricula)
-      setCareers(paths)
       setCurriculumId(result.curricula.length === 1 ? result.curricula[0]?.id ?? '' : '')
     }).catch((reason: unknown) => {
       if (active) setError(reason instanceof Error ? reason.message : 'Không tải được dữ liệu chương trình.')
     }).finally(() => { if (active) setBusy(false) })
     return () => { active = false }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    setCareers([])
+    setCareerCode('')
+    setCompareCode('')
+    setPlan(null)
+    setComparison(null)
+    if (curriculumId) {
+      void workspaceApi.electiveCareers(curriculumId).then((paths) => {
+        if (active) setCareers(paths)
+      }).catch((reason: unknown) => {
+        if (active) setError(reason instanceof Error ? reason.message : 'Không tải được định hướng nghề.')
+      })
+    }
+    return () => { active = false }
+  }, [curriculumId])
 
   async function recommend() {
     if (!curriculumId || !careerCode) return
@@ -92,11 +105,12 @@ export function ElectivesView({ onOpenProfile }: { onOpenProfile: () => void }) 
             </select>
           </label>
           <label>Định hướng nghề nghiệp
-            <select value={careerCode} required onChange={(event) => { setCareerCode(event.target.value); setPlan(null); setComparison(null) }}>
-              <option value="">Chọn định hướng nghề nghiệp</option>
+            <select value={careerCode} required disabled={!curriculumId || careers.length === 0} onChange={(event) => { setCareerCode(event.target.value); setPlan(null); setComparison(null) }}>
+              <option value="">{!curriculumId ? 'Chọn chuyên ngành trước' : careers.length === 0 ? 'Đang tải định hướng nghề…' : 'Chọn định hướng nghề nghiệp'}</option>
               {careers.map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
             </select>
           </label>
+          {careerCode && <p className="learning-source">Định hướng nghề tham khảo: <a href={careers.find((item) => item.code === careerCode)?.evidence_url} target="_blank" rel="noreferrer">{careers.find((item) => item.code === careerCode)?.evidence_label} <ExternalLink size={14} /></a>. Đây là lĩnh vực công việc, không bảo đảm doanh nghiệp đang tuyển hoặc đủ điều kiện ứng tuyển.</p>}
           <button className="learning-primary" type="submit" disabled={!curriculumId || !careerCode}>Xem gợi ý <ArrowRight size={16} /></button>
         </form>
         {plan && <PlanDetails plan={plan} />}
@@ -128,6 +142,7 @@ function PlanDetails({ plan }: { plan: ElectivePlan }) {
     </div>
     <p className="learning-credits">{plan.selected_credits}{plan.required_credits !== null ? `/${plan.required_credits}` : ''} <span>tín chỉ được ghép</span></p>
     <p>{plan.explanation}</p>
+    <p className="learning-source">Tham khảo hướng nghề: <a href={plan.career.evidence_url} target="_blank" rel="noreferrer">{plan.career.evidence_label} <ExternalLink size={14} /></a>. Mô tả nghề không phải cam kết tuyển dụng.</p>
     {plan.warnings.length > 0 && <div className="learning-alert" role="status"><AlertCircle size={18} /><ul>{plan.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
     <h3>Điều kiện nhóm</h3>
     <div className="learning-list">{plan.groups.map((group) => <article key={group.name}>
@@ -142,6 +157,14 @@ function PlanDetails({ plan }: { plan: ElectivePlan }) {
       </div>
       <span>{Math.round(course.relevance_score * 100)}% phù hợp</span>
     </article>)}</div>}
+    {plan.exploratory_courses.length > 0 && <>
+      <h3>Môn nên tìm hiểu thêm</h3>
+      <p>Các môn này có trong CTĐT và liên quan định hướng đã chọn, nhưng chưa được tính vào tín chỉ kế hoạch. Hãy kiểm tra nhóm, điều kiện và việc mở lớp với cố vấn học tập.</p>
+      <div className="learning-list">{plan.exploratory_courses.map((course) => <article className="learning-course" key={course.curriculum_course_id}>
+        <div><h4>{course.name}</h4><p>{course.credits ? `${course.credits} tín chỉ · ` : 'Chưa rõ tín chỉ · '}{course.group}</p><p>{course.matched_skills.join(', ')}</p></div>
+        <span>{Math.round(course.relevance_score * 100)}% phù hợp</span>
+      </article>)}</div>
+    </>}
     <p className="learning-source">Nguồn: {plan.curriculum.source_url
       ? <a href={plan.curriculum.source_url} target="_blank" rel="noreferrer">{plan.curriculum.source_file} <ExternalLink size={14} /></a>
       : plan.curriculum.source_file}. Dữ liệu học kỳ và tiên quyết có thể thiếu; hãy xác nhận với cố vấn học tập trước khi đăng ký.</p>

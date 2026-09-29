@@ -38,7 +38,6 @@ describe('ElectivesView', () => {
     api.resolution.mockResolvedValueOnce({
       status: 'program_not_mapped', message: 'Ngành trong hồ sơ chưa khớp CTĐT UTH.', curricula: [],
     })
-    api.careers.mockResolvedValueOnce([])
     const onOpenProfile = vi.fn()
     render(<ElectivesView onOpenProfile={onOpenProfile} />)
     expect(await screen.findByText('Ngành trong hồ sơ chưa khớp CTĐT UTH.')).toBeInTheDocument()
@@ -54,7 +53,10 @@ describe('ElectivesView', () => {
         { id: '2025', specialization: 'Khoa học dữ liệu và AI', cohort: 2025 },
       ],
     })
-    api.careers.mockResolvedValueOnce([{ code: 'ai_engineer', label: 'AI Engineer', skills: [] }])
+    api.careers.mockResolvedValueOnce([{
+      code: 'ai_engineer', label: 'AI Engineer', skills: [],
+      evidence_label: 'Bosch Việt Nam', evidence_url: 'https://www.bosch.com.vn/careers/fields-of-work/',
+    }])
     render(<ElectivesView onOpenProfile={vi.fn()} />)
     const cohort = await screen.findByLabelText('Chuyên ngành và khóa học') as HTMLSelectElement
     const career = screen.getByLabelText('Định hướng nghề nghiệp') as HTMLSelectElement
@@ -63,6 +65,8 @@ describe('ElectivesView', () => {
     expect(career.value).toBe('')
     expect(submit).toBeDisabled()
     fireEvent.change(cohort, { target: { value: '2024' } })
+    await waitFor(() => expect(api.careers).toHaveBeenCalledWith('2024'))
+    await screen.findByRole('option', { name: 'AI Engineer' })
     fireEvent.change(career, { target: { value: 'ai_engineer' } })
     expect(submit).toBeEnabled()
   })

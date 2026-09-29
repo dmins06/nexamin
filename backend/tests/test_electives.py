@@ -57,7 +57,7 @@ async def make_catalog(
     course = CatalogCourse(
         university_id=university.id,
         code="L001",
-        name="Lập trình Python",
+        name="Quản trị chuỗi cung ứng",
         normalized_key="test-supply-chain",
     )
     session.add_all([group, course])
@@ -73,7 +73,7 @@ async def make_catalog(
         ),
         CatalogCourseSkill(
             catalog_course_id=course.id,
-            skill_code="python",
+            skill_code="supply_chain",
             mapping_source="name_rule_v1",
         ),
     ])
@@ -91,6 +91,8 @@ async def test_advisor_requires_uth_and_matching_program(
     service = ElectiveRecommendationService(session, first)
     assert service.availability().status == "supported"
     assert [item.id for item in await service.curricula()] == [version.id]
+    assert "supply_chain_planner" in [item.code for item in await service.career_paths(version.id)]
+    assert "ai_engineer" not in [item.code for item in await service.career_paths(version.id)]
     second.university = University(
         name="Trường khác", short_name="KHAC", official_code="OTHER"
     )
@@ -112,16 +114,21 @@ async def test_exact_credit_plan_and_missing_credit_is_partial(
     first, _ = users
     version, group, _ = await make_catalog(session, first)
     service = ElectiveRecommendationService(session, first)
-    plan = await service.recommend(version.id, "ai_engineer")
+    plan = await service.recommend(version.id, "supply_chain_planner")
     assert plan.status == "valid_known_rules"
     assert plan.selected_credits == plan.required_credits == 3
     assert len(plan.courses) == 1
+    assert plan.courses[0].relevance_score > 0
+    assert plan.career.evidence_url.startswith("https://")
+    with pytest.raises(AppError, match="không phù hợp với chuyên ngành"):
+        await service.recommend(version.id, "ai_engineer")
     assert any("tiên quyết" in warning for warning in plan.warnings)
     group.required_credits = 4
     await session.commit()
-    partial = await service.recommend(version.id, "ai_engineer")
+    partial = await service.recommend(version.id, "supply_chain_planner")
     assert partial.status == "partial"
     assert partial.courses == []
+    assert partial.exploratory_courses[0].name == "Quản trị chuỗi cung ứng"
     assert partial.required_credits is None
 
 

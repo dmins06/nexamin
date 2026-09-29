@@ -330,6 +330,8 @@ export interface Career {
   code: string
   label: string
   skills: string[]
+  evidence_label: string
+  evidence_url: string
 }
 
 export interface ElectivePlan {
@@ -353,6 +355,7 @@ export interface ElectivePlan {
     reasons: string[]
     source_url: string | null
   }>
+  exploratory_courses: ElectivePlan['courses']
   groups: Array<{ name: string; required_credits: number | null; selected_credits: number; status: 'satisfied' | 'unresolved' }>
   skill_coverage: Record<string, number>
   warnings: string[]
@@ -464,7 +467,7 @@ export const workspaceApi = {
   electiveAvailability: () => authorized<ElectiveAvailability>('/electives/availability'),
   electiveResolution: () => authorized<ElectiveResolution>('/electives/resolution'),
   electiveCurricula: () => authorized<Curriculum[]>('/electives/curricula'),
-  electiveCareers: () => authorized<Career[]>('/electives/careers'),
+  electiveCareers: (curriculumId: string) => authorized<Career[]>(`/electives/careers?curriculum_id=${encodeURIComponent(curriculumId)}`),
   electiveRecommend: (curriculumId: string, careerCode: string) =>
     authorized<ElectivePlan>('/electives/recommend', { method: 'POST', body: JSON.stringify({ curriculum_id: curriculumId, career_code: careerCode }) }),
   electiveCompare: (curriculumId: string, firstCode: string, secondCode: string) =>

@@ -28,7 +28,15 @@ from app.schemas.electives import (
     ElectivePlan,
     RecommendedCourse,
 )
-from app.services.career_map_v1 import CAREER_BY_CODE, CAREER_PATHS, SKILL_LABELS, CareerPath, fold
+from app.services.career_map_v1 import fold
+from app.services.career_map_v2 import (
+    CAREER_BY_CODE,
+    SKILL_LABELS,
+    CareerPath,
+    careers_for_program,
+    course_skill_codes,
+    is_career_relevant_course,
+)
 
 SUPPORTED_UNIVERSITY_CODES = frozenset({"UTH"})
 
@@ -204,15 +212,33 @@ class ElectiveRecommendationService:
     async def curricula(self) -> list[CurriculumSummary]:
         return (await self.resolve()).curricula
 
+    async def _verified_curriculum(self, curriculum_id: uuid.UUID) -> tuple[CurriculumVersion, AcademicProgram]:
+        self._require_supported()
+        version = await self.session.get(CurriculumVersion, curriculum_id)
+        program = await self.session.get(AcademicProgram, version.program_id) if version else None
+        if (
+            version is None or program is None or not version.approved
+            or program.university_id != self.user.university_id
+            or not profile_matches_program(self.user.major or "", program)
+        ):
+            raise AppError("CURRICULUM_NOT_FOUND", "Chương trình không phù hợp với hồ sơ của bạn.", 404)
+        return version, program
+
     @staticmethod
-    def career_paths() -> list[CareerSummary]:
+    def _career_summary(path: CareerPath) -> CareerSummary:
+        return CareerSummary(
+            code=path.code,
+            label=path.label,
+            skills=[SKILL_LABELS[code] for code, _ in path.skill_weights],
+            evidence_label=path.evidence_label,
+            evidence_url=path.evidence_url,
+        )
+
+    async def career_paths(self, curriculum_id: uuid.UUID) -> list[CareerSummary]:
+        _, program = await self._verified_curriculum(curriculum_id)
         return [
-            CareerSummary(
-                code=path.code,
-                label=path.label,
-                skills=[SKILL_LABELS[code] for code, _ in path.skill_weights],
-            )
-            for path in CAREER_PATHS
+            self._career_summary(path)
+            for path in careers_for_program(program.major_name, program.specialization_name)
         ]
 
     async def recommend(self, curriculum_id: uuid.UUID, career_code: str) -> ElectivePlan:
@@ -222,14 +248,9 @@ class ElectiveRecommendationService:
         career = CAREER_BY_CODE.get(career_code)
         if career is None:
             raise AppError("CAREER_NOT_FOUND", "Không tìm thấy định hướng nghề nghiệp.", 422)
-        version = await self.session.get(CurriculumVersion, curriculum_id)
-        program = await self.session.get(AcademicProgram, version.program_id) if version else None
-        if (
-            version is None or program is None or not version.approved
-            or program.university_id != self.user.university_id
-            or not profile_matches_program(self.user.major or "", program)
-        ):
-            raise AppError("CURRICULUM_NOT_FOUND", "Chương trình không phù hợp với hồ sơ của bạn.", 404)
+        version, program = await self._verified_curriculum(curriculum_id)
+        if career not in careers_for_program(program.major_name, program.specialization_name):
+            raise AppError("CAREER_NOT_APPLICABLE", "Định hướng nghề này không phù hợp với chuyên ngành đã chọn.", 422)
         memberships = (await self.session.execute(
             select(CurriculumCourse, CatalogCourse)
             .join(CatalogCourse, CatalogCourse.id == CurriculumCourse.catalog_course_id)
@@ -252,15 +273,19 @@ class ElectiveRecommendationService:
             )).all():
                 mapped[course_id].add(skill)
         grouped: dict[uuid.UUID, list[Candidate]] = defaultdict(list)
+        all_candidates: list[Candidate] = []
         skipped_unmapped = 0
         for membership, course in memberships:
+            if not is_career_relevant_course(course.name):
+                continue
+            skills = frozenset(mapped[course.id] | course_skill_codes(course.name))
+            candidate = Candidate(membership, course, skills, relevance(skills, career))
+            all_candidates.append(candidate)
             if membership.elective_group_id is None:
                 skipped_unmapped += 1
                 continue
-            skills = frozenset(mapped[course.id])
-            grouped[membership.elective_group_id].append(
-                Candidate(membership, course, skills, relevance(skills, career))
-            )
+            if candidate.score > 0:
+                grouped[membership.elective_group_id].append(candidate)
         group_codes = Counter(group.group_code for group in groups if group.group_code)
         used_courses: set[uuid.UUID] = set()
         selected: list[tuple[Candidate, ElectiveGroup]] = []
@@ -301,37 +326,54 @@ class ElectiveRecommendationService:
         if not groups:
             unresolved = True
             warnings.append("Chương trình chưa có quy tắc nhóm tự chọn rõ ràng.")
+        if not any(candidate.score > 0 for candidate in all_candidates):
+            unresolved = True
+            warnings.append("Dữ liệu môn tự chọn hiện có của chuyên ngành này chưa có môn chuyên môn liên quan rõ ràng đến hướng nghề; không tự tạo môn hoặc coi môn thể chất/quốc phòng là phù hợp nghề.")
         if any(member.prerequisite_raw is None for member, _ in memberships):
             warnings.append("Tài liệu nguồn không cung cấp đầy đủ môn tiên quyết; kế hoạch chưa kiểm chứng điều kiện này.")
         if any(member.semester is None for member, _ in memberships):
             warnings.append("Tài liệu nguồn không cung cấp học kỳ; thứ tự học cần được đối chiếu với nhà trường.")
-        course_results = []
+        course_results: list[RecommendedCourse] = []
         career_weights = dict(career.skill_weights)
-        for candidate, group in sorted(selected, key=lambda pair: (-pair[0].score, pair[0].course.name)):
+        def describe(candidate: Candidate, group_name: str, exploratory: bool = False) -> RecommendedCourse:
             matched = [
                 SKILL_LABELS[skill] for skill in candidate.skills
                 if skill in career_weights and skill in SKILL_LABELS
             ]
             matched.sort()
-            course_results.append(RecommendedCourse(
+            return RecommendedCourse(
                 catalog_course_id=candidate.course.id,
                 curriculum_course_id=candidate.membership.id,
                 code=candidate.course.code,
                 name=candidate.course.name,
                 credits=candidate.membership.credits or 0,
-                group=group.raw_label,
+                group=group_name,
                 semester=candidate.membership.semester,
                 academic_year=candidate.membership.academic_year,
                 prerequisite=candidate.membership.prerequisite_raw,
                 relevance_score=candidate.score,
                 matched_skills=matched,
                 reasons=[
-                    f"Môn có trong nhóm tự chọn {group.raw_label} của đúng chương trình và khóa đã chọn.",
+                    ("Môn tự chọn thuộc đúng CTĐT; chưa đủ quy tắc để xác nhận kế hoạch tín chỉ."
+                     if exploratory else f"Môn có trong nhóm tự chọn {group_name} của đúng chương trình và khóa đã chọn."),
                     f"Tên môn liên quan đến: {', '.join(matched)}." if matched
                     else "Chọn để đáp ứng tín chỉ nhóm; chưa có kỹ năng nghề nghiệp được ánh xạ từ tên môn.",
                 ],
                 source_url=version.source_url,
-            ))
+            )
+        for candidate, group in sorted(selected, key=lambda pair: (-pair[0].score, pair[0].course.name)):
+            course_results.append(describe(candidate, group.raw_label))
+        selected_ids = {candidate.course.id for candidate, _ in selected}
+        exploratory: list[RecommendedCourse] = []
+        seen = set(selected_ids)
+        for candidate in sorted(all_candidates, key=lambda item: (-item.score, item.course.name)):
+            if candidate.score <= 0 or candidate.course.id in seen:
+                continue
+            seen.add(candidate.course.id)
+            candidate_group = next((item for item in groups if item.id == candidate.membership.elective_group_id), None)
+            exploratory.append(describe(candidate, candidate_group.raw_label if candidate_group else "Chưa có nhóm", True))
+            if len(exploratory) == 5:
+                break
         covered = set().union(*(candidate.skills for candidate, _ in selected)) if selected else set()
         coverage = {
             SKILL_LABELS[skill]: 100.0 if skill in covered else 0.0
@@ -345,16 +387,13 @@ class ElectiveRecommendationService:
             raise AppError("CURRICULUM_NOT_FOUND", "Chương trình không phù hợp với hồ sơ.", 404)
         return ElectivePlan(
             curriculum=summary,
-            career=CareerSummary(
-                code=career.code,
-                label=career.label,
-                skills=[SKILL_LABELS[skill] for skill, _ in career.skill_weights],
-            ),
+            career=self._career_summary(career),
             status="partial" if unresolved else "valid_known_rules",
             selected_credits=sum(course.credits for course in course_results),
             required_credits=sum(group.required_credits or 0 for group in groups)
             if not unresolved else None,
             courses=course_results,
+            exploratory_courses=exploratory,
             groups=plans,
             skill_coverage=coverage,
             warnings=warnings,

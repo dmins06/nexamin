@@ -36,6 +36,8 @@ class CareerSummary(BaseModel):
     code: str
     label: str
     skills: list[str]
+    evidence_label: str
+    evidence_url: str
 
 
 class RecommendationRequest(BaseModel):
@@ -79,6 +81,7 @@ class ElectivePlan(BaseModel):
     selected_credits: int
     required_credits: int | None
     courses: list[RecommendedCourse]
+    exploratory_courses: list[RecommendedCourse]
     groups: list[ElectiveGroupPlan]
     skill_coverage: dict[str, float]
     warnings: list[str]
