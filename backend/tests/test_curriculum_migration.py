@@ -91,6 +91,17 @@ async def test_real_uth_ai_major_resolves_and_recommends_for_two_careers(tmp_pat
             plan = await service.recommend(version.id, career)
             assert plan.courses, career
             assert all(course.curriculum_course_id for course in plan.courses)
+        for registered_major in (
+            "Logistics và quản lý chuỗi cung ứng - chương trình tiên tiến",
+            "Kỹ thuật điện (chuyên ngành Điện công nghiệp; Hệ thống điện giao thông; Năng lượng tái tạo) - chương trình tiên tiến",
+            "Kỹ thuật môi trường (chuyên ngành Kỹ thuật môi trường; Quản lý an toàn và môi trường)",
+            "Kỹ thuật ô tô (chuyên ngành Cơ khí ô tô; Cơ điện tử ô tô) - chương trình tiên tiến",
+            "Ngôn ngữ Anh – chương trình tiên tiến",
+        ):
+            user.major = registered_major
+            assert (await service.resolve()).status == "ready", registered_major
+        user.major = "Luật – chương trình tiên tiến"
+        assert (await service.resolve()).status == "program_not_mapped"
         user.major = "Khoa hoc du lieu & AI"
         assert (await service.resolve()).status == "ready"
         user.major = "Ngành không có trong dữ liệu"

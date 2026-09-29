@@ -55,16 +55,36 @@ def canonical_name(value: str) -> str:
     return re.sub(r"\bcntt\b", "cong nghe thong tin", normalized)
 
 
+def comparable_specialization(value: str) -> frozenset[str]:
+    normalized = canonical_name(value).replace("block chain", "blockchain")
+    normalized = re.sub(r"\buas\b", "", normalized).strip()
+    words = normalized.split()
+    if words[:2] == ["cong", "nghe"] and "blockchain" in words:
+        words = words[2:]
+    return frozenset(word for word in words if word != "va")
+
+
 def profile_matches_program(major: str, program: AcademicProgram) -> bool:
-    """Resolve a profile label to an imported program without guessing courses."""
-    profile = canonical_name(major)
+    """Match public UTH admission labels, including cohorts and multi-specialty labels."""
+    profile = fold(major.replace("đ", "d").replace("Đ", "D")).replace("&", " va ")
+    profile = re.sub(r"[^a-z0-9;]+", " ", profile).strip()
+    profile = re.sub(r"\bcntt\b", "cong nghe thong tin", profile)
     parent, separator, specialization = profile.partition(" chuyen nganh ")
     program_major = canonical_name(program.major_name)
     program_specialization = canonical_name(program.specialization_name)
     if separator:
-        specialization = re.split(r"\bchuong trinh\b", specialization, maxsplit=1)[0].strip()
+        details = re.split(r"\bchuong trinh\b|\bcampus\b", specialization, maxsplit=1)[0]
+        options = [option.strip() for option in details.split(";") if option.strip()]
         parent = parent.removeprefix("nganh ").strip()
-        return specialization == program_specialization and (not parent or parent == program_major)
+        same_major = parent == program_major
+        grouped_program = parent.startswith(("nhom chuong trinh ", "nhom nganh "))
+        if not same_major and not grouped_program:
+            return False
+        return any(
+            comparable_specialization(option) == comparable_specialization(program_specialization)
+            for option in options
+        )
+    profile = re.split(r"\bchuong trinh\b|\bcampus\b", profile, maxsplit=1)[0].strip()
     profile = profile.removeprefix("nganh ").strip()
     if profile in {program_major, program_specialization, canonical_name(program.program_code)}:
         return True
@@ -155,7 +175,7 @@ class ElectiveRecommendationService:
         if not matched_programs:
             return AdvisorResolution(
                 status="program_not_mapped",
-                message="Ngành hoặc chuyên ngành trong hồ sơ chưa khớp CTĐT UTH đã duyệt. Hãy kiểm tra lại hồ sơ.",
+                message="Chưa có CTĐT môn tự chọn đã duyệt khớp ngành/chuyên ngành này. Nếu hồ sơ đã đúng, cần bổ sung CTĐT từ UTH trước khi có thể gợi ý môn chính xác.",
                 curricula=[],
             )
         rows = (await self.session.execute(
