@@ -1,0 +1,105 @@
+.anatomy-feature { color: var(--app-text); min-width: 0; }
+.anatomy-feature button, .anatomy-status button { color: var(--app-text); border: 1px solid var(--panel-line); border-radius: 10px; background: var(--glass-soft); min-height: 36px; padding: 7px 10px; display: inline-flex; gap: 7px; align-items: center; justify-content: center; cursor: pointer; font: inherit; font-size: 12px; }
+.anatomy-feature button:hover, .anatomy-status button:hover { background: var(--surface-hover); border-color: var(--accent); }
+.anatomy-feature button[aria-pressed=true] { color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, var(--glass)); border-color: var(--accent); }
+.anatomy-feature button:disabled { opacity: .45; cursor: not-allowed; }
+.anatomy-feature :is(button, input, select, summary, a, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.anatomy-feature p { line-height: 1.65; }
+.anatomy-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 0 0 20px; }
+.anatomy-heading h1 { margin: 5px 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.04em; }
+.anatomy-heading p { margin: 0; color: var(--app-muted); font-size: 13px; }
+.anatomy-heading-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.anatomy-workspace { display: grid; grid-template-columns: 240px minmax(0, 1fr) 244px; gap: 12px; align-items: start; }
+.anatomy-sidebar, .anatomy-info, .anatomy-viewer-panel { border: 1px solid var(--panel-line); border-radius: 18px; background: var(--glass); min-width: 0; }
+.anatomy-sidebar { max-height: 790px; overflow: auto; scrollbar-width: thin; }
+.anatomy-sidebar-content { padding: 16px; font-size: 12px; }
+.anatomy-search { display: grid; gap: 8px; font-weight: 600; margin-bottom: 16px; }
+.anatomy-feature input[type=search], .anatomy-feature select { width: 100%; min-width: 0; background: var(--field-bg); color: var(--app-text); border: 1px solid var(--panel-line); padding: 10px; border-radius: 9px; font: inherit; }
+.anatomy-feature input[type=checkbox] { width: 16px; height: 16px; margin: 5px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+.anatomy-sidebar-content details { border-bottom: 1px solid var(--panel-line); padding: 11px 0; }
+.anatomy-feature summary { cursor: pointer; font-size: 12px; font-weight: 700; min-height: 28px; }
+.anatomy-system-list { display: grid; gap: 3px; padding-top: 8px; }
+.anatomy-system-list button { text-align: left; justify-content: flex-start; border-color: transparent; background: transparent; }
+.anatomy-system-row { display: grid; grid-template-columns: minmax(0,1fr) 26px; align-items: center; }
+.anatomy-checks { display: grid; gap: 4px; padding-top: 8px; }
+.anatomy-checks label { display: flex; align-items: center; gap: 5px; min-height: 32px; cursor: pointer; }
+.anatomy-entities h3 { display: flex; justify-content: space-between; font-size: 12px; margin: 18px 0 9px; }
+.anatomy-entities h3 span { color: var(--app-muted); font-weight: 400; }
+.anatomy-entities ul { padding: 0; margin: 0; list-style: none; }
+.anatomy-entities button { width: 100%; text-align: left; justify-content: space-between; border-color: transparent; background: transparent; margin: 2px 0; }
+.anatomy-entities small { display: block; color: var(--app-muted); font-size: 10px; margin-top: 3px; }
+.anatomy-viewer-panel { overflow: hidden; display: flex; flex-direction: column; position: relative; }
+.anatomy-toolbar { display: flex; flex-wrap: wrap; gap: 5px; padding: 12px; border-bottom: 1px solid var(--panel-line); z-index: 3; background: var(--glass); }
+.anatomy-toolbar button { flex-shrink: 0; }
+.anatomy-toolbar button span { font-size: 11px; }
+.anatomy-canvas-wrap { height: 540px; min-height: 340px; position: relative; background: radial-gradient(ellipse at 50% 45%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 75%); }
+.anatomy-canvas-wrap canvas { touch-action: none; }
+.anatomy-demo-note { position: absolute; bottom: 10px; left: 12px; right: 12px; margin: 0; padding: 8px 10px; background: var(--glass-strong); border: 1px solid var(--panel-line); border-radius: 8px; color: var(--app-muted); font-size: 10px; pointer-events: none; z-index: 3; }
+.anatomy-presets { display: flex; flex-wrap: wrap; gap: 5px; padding: 12px; border-top: 1px solid var(--panel-line); }
+.anatomy-presets button { font-size: 10px; min-height: 30px; padding: 5px 8px; }
+.anatomy-feature .anatomy-camera-help { color: var(--app-muted); font-size: 10px; margin: 0; padding: 0 12px 14px; }
+.anatomy-section-controls { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px 12px; font-size: 11px; border-bottom: 1px solid var(--panel-line); }
+.anatomy-section-controls label { display: grid; gap: 5px; flex: 1; min-width: 130px; }
+.anatomy-section-controls input { width: 100%; accent-color: var(--accent); }
+.anatomy-info > summary { padding: 15px 16px 0; color: var(--app-muted); }
+.anatomy-info-content { padding: 16px; }
+.anatomy-info h2 { font-size: 23px; letter-spacing: -.035em; line-height: 1.25; margin: 6px 0; }
+.anatomy-info h3 { font-size: 12px; margin: 20px 0 10px; }
+.anatomy-info .anatomy-english { font-size: 14px; margin: 0; }
+.anatomy-info .anatomy-latin { font-size: 11px; color: var(--app-muted); font-style: italic; margin: 5px 0 0; }
+.anatomy-info-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0; }
+.anatomy-info-actions button { font-size: 11px; }
+.anatomy-info dl { font-size: 12px; line-height: 1.7; margin: 0; }
+.anatomy-info dt { font-weight: 700; margin-top: 15px; }
+.anatomy-info dd { margin: 4px 0 0; color: var(--app-muted); }
+.anatomy-related { display: flex; flex-wrap: wrap; gap: 5px; }
+.anatomy-related button { font-size: 11px; text-align: left; }
+.anatomy-source { display: inline-block; color: var(--accent); font-size: 10px; margin-top: 24px; text-underline-offset: 3px; }
+.anatomy-feature .anatomy-disclaimer { font-size: 10px; color: var(--app-muted); margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--panel-line); }
+.anatomy-info-empty { padding: 25px 0; color: var(--app-muted); }
+.anatomy-info-empty > svg { color: var(--accent); }
+.anatomy-info-empty h3 { color: var(--app-text); }
+.anatomy-info-empty p, .anatomy-muted { font-size: 12px; color: var(--app-muted); }
+.anatomy-learning { display: flex; justify-content: space-between; gap: 5px; align-items: center; margin-bottom: 22px; }
+.anatomy-learning span { font-size: 10px; text-align: center; color: var(--app-muted); }
+.anatomy-learning button { padding: 5px; font-size: 10px; }
+.anatomy-status { min-height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; gap: 12px; padding: 28px; color: var(--app-text); }
+.anatomy-status h3 { font-size: 16px; margin: 0; }
+.anatomy-status p { font-size: 12px; color: var(--app-muted); max-width: 340px; }
+.anatomy-empty-scene { position: absolute; top: 35%; left: 16px; right: 16px; text-align: center; background: var(--glass-strong); padding: 20px; border-radius: 12px; font-size: 12px; }
+.anatomy-label-root { overflow: hidden; }
+.anatomy-leader-lines { position: absolute; inset: 0; width: 100%; height: 100%; stroke: var(--app-muted); stroke-width: 1; opacity: .65; }
+.anatomy-feature button.anatomy-label { position: absolute; width: 104px; height: 26px; min-height: 26px; padding: 3px 6px; display: flex; font-size: 10px; background: var(--glass-strong); pointer-events: auto; }
+.anatomy-label span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anatomy-attributions { font-size: 11px; color: var(--app-muted); overflow-wrap: anywhere; }
+.anatomy-feature .anatomy-filter-button { display: none; }
+.anatomy-drawer { color: var(--app-text); background: var(--glass-strong); backdrop-filter: blur(20px); border: 1px solid var(--panel-line); border-radius: 0 18px 18px 0; margin: 0; max-height: 100dvh; height: 100dvh; width: min(350px, 92vw); max-width: 92vw; padding: 0; }
+.anatomy-drawer::backdrop { background: #050914aa; }
+.anatomy-drawer > header { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--panel-line); }
+.anatomy-drawer h2 { margin: 0; font-size: 16px; }
+.anatomy-viewer-panel:is(.is-expanded, :fullscreen) { position: fixed; inset: 0; z-index: 1000; height: 100dvh; width: 100vw; border-radius: 0; background: var(--app-bg); }
+.anatomy-viewer-panel:is(.is-expanded, :fullscreen) .anatomy-canvas-wrap { flex: 1; min-height: 0; height: auto; }
+@media (max-width: 1279px) { .anatomy-workspace { grid-template-columns: minmax(0, 1fr) 244px; } .anatomy-sidebar { display: none; } .anatomy-feature .anatomy-filter-button { display: inline-flex; } }
+@media (max-width: 760px) {
+  .anatomy-heading { align-items: flex-start; flex-direction: column; gap: 12px; margin: 15px 0; }
+  .anatomy-heading h1 { font-size: 27px; }
+  .anatomy-heading-actions { width: 100%; }
+  .anatomy-feature button { min-height: 44px; }
+  .anatomy-heading-actions button { min-height: 44px; }
+  .anatomy-workspace { grid-template-columns: minmax(0,1fr); gap: 10px; }
+  .anatomy-canvas-wrap { height: 55svh; min-height: 360px; max-height: 560px; }
+  .anatomy-toolbar { padding: 9px; gap: 5px; }
+  .anatomy-toolbar button { min-height: 44px; min-width: 44px; padding: 7px; }
+  .anatomy-toolbar button span { display: none; }
+  .anatomy-presets { flex-wrap: nowrap; overflow: auto; scrollbar-width: thin; }
+  .anatomy-presets button { flex-shrink: 0; min-height: 44px; }
+  .anatomy-checks label { min-height: 44px; }
+  .anatomy-feature button.anatomy-label { height: 44px; min-height: 44px; }
+  .anatomy-info { border-radius: 20px 20px 12px 12px; }
+  .anatomy-info > summary { min-height: 48px; padding: 17px 16px 12px; }
+  .anatomy-info-content { padding-top: 8px; }
+  .anatomy-info-empty { padding: 12px 0; }
+  .anatomy-info:is([open]) > summary { border-bottom: 1px solid var(--panel-line); margin-bottom: 12px; }
+  .anatomy-learning { justify-content: flex-start; gap: 16px; }
+  .anatomy-viewer-panel:is(.is-expanded, :fullscreen) .anatomy-canvas-wrap { max-height: none; }
+}
