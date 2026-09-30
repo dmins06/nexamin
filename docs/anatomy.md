@@ -2,7 +2,7 @@
 
 ## Delivered scope
 
-`ViewId = anatomy`; desktop item immediately follows Luyện đề. Mobile access uses the existing more menu; bottom navigation remains five items. App only imports/renders `AnatomyView`. No API, account, database or backend configuration changes are required.
+The module now lives inside `ViewId = lab`: Phòng Lab → Y – Sinh → Giải phẫu người 3D. Phòng Lab immediately follows Luyện đề in the sidebar and is available in the existing mobile-more menu; bottom navigation remains five items. App renders LabHubView, whose lazy module registry opens the unchanged AnatomyView. Breadcrumb and Back return to the Hub. No API, account, database or backend configuration changes are required. See `docs/labs.md`.
 
 The first release is a **clearly labeled geometric WebGL demo**, not an anatomical atlas. It has 28 educational entities across 11 systems and demonstrates camera rotation/zoom/pan, picking/highlight, layers, vessel filters, isolate/hide/reveal, bilingual information, label leader lines, three clipping planes and optional previous/next learning. The primitives' shapes, sizes and placement are not medically accurate. There is no diagnosis/treatment guidance. OpenStax Anatomy & Physiology 2e chapter links accompany concise metadata; this is not a substitute for a reviewed course atlas.
 

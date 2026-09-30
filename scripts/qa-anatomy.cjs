@@ -2,7 +2,7 @@ const { chromium } = require('playwright')
 const { mkdirSync } = require('node:fs')
 const assert = require('node:assert/strict')
 
-async function prepare(browser, width, height, light = false, setup) {
+async function prepare(browser, width, height, light = false, setup, onHub) {
   const page = await browser.newPage({ viewport: { width, height }, reducedMotion: 'reduce' })
   await page.routeWebSocket('**/social/ws**', () => {})
   // External font availability must not indefinitely block a local functional test.
@@ -27,8 +27,12 @@ async function prepare(browser, width, height, light = false, setup) {
   await page.getByLabel(width <= 760 ? 'Mở thêm điều hướng' : 'Mở hồ sơ cá nhân', { exact: true }).waitFor()
   const initialHeavy = await page.evaluate(() => performance.getEntriesByType('resource').filter((entry) => /AnatomyViewer|react-three|three\.js/.test(entry.name)).length)
   assert.equal(initialHeavy, 0, '3D dependencies should not load on the homepage')
-  if (width <= 760) { await page.getByLabel('Mở thêm điều hướng').click(); await page.locator('.mobile-more').getByRole('button', { name: 'Giải phẫu 3D' }).click() }
-  else await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: 'Giải phẫu 3D' }).click()
+  if (width <= 760) { await page.getByLabel('Mở thêm điều hướng').click(); await page.locator('.mobile-more').getByRole('button', { name: 'Phòng Lab' }).click() }
+  else await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('button', { name: 'Phòng Lab' }).click()
+  await page.getByRole('heading', { name: 'Phòng Lab', exact: true }).waitFor()
+  assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').filter((entry) => /AnatomyView|AnatomyWorkspace|react-three|models\/anatomy/.test(entry.name)).length), 0, 'Hub must not load anatomy assets')
+  if (onHub) await onHub(page)
+  await page.getByRole('button', { name: 'Khám phá', exact: true }).click()
   try { await page.locator('.anatomy-canvas-wrap canvas').waitFor({ timeout: 30000 }) } catch (error) { console.log(await page.locator('.anatomy-feature').innerText()); throw error }
   await page.waitForFunction(() => document.querySelector('.anatomy-canvas-wrap canvas')?.width > 0)
   if (light && await page.getByLabel('Chuyển sang giao diện ban ngày').count()) await page.getByLabel('Chuyển sang giao diện ban ngày').click()
