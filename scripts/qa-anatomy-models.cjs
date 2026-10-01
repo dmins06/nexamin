@@ -16,7 +16,7 @@ async function main() {
   const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
   try {
     const { page, errors } = await prepare(browser, 1440, 1000, false, async (page) => {
-      await page.route('**/models/anatomy/manifest.json', (route) => route.fulfill({ json: { version: 1, models: [{ id: 'fixture', url: '/models/anatomy/test-fixture.glb', license: 'Test only', attribution: 'Synthetic QA fixture', scale: 1, position: [0, 0, 0] }] } }))
+      await page.route('**/models/anatomy/manifest.json', (route) => route.fulfill({ json: { version: 1, models: [{ id: 'fixture', url: '/models/anatomy/test-fixture.glb', license: 'Test only', attribution: 'Synthetic QA fixture', scale: 1, position: [0, 0, 0], structureIds: ['heart'] }] } }))
       await page.route('**/models/anatomy/test-fixture.glb', (route) => route.fulfill({ contentType: 'model/gltf-binary', body: fixtureGlb() }))
     })
     const canvas = page.locator('.anatomy-canvas-wrap canvas')

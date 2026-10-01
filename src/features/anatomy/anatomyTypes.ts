@@ -44,6 +44,7 @@ export interface AnatomyModel {
   attribution: string
   scale: number
   position: VectorTuple
+  structureIds: string[]
 }
 
 export interface AnatomyManifest { version: 1; models: AnatomyModel[] }
@@ -55,7 +56,7 @@ export interface AnatomyViewerProps {
   command: CameraCommand
   onSelect: (id: string | null) => void
   onContextLost: () => void
+  onModelFailure?: (id: string) => void
 }
 
-// A future quiz can consume the same entity selection without depending on WebGL.
-export interface AnatomyLearningPrompt { structureId: string; question: string; revealAnswer: boolean }
+export interface AnatomyLearningPrompt { structureId: string; choices: string[]; answerId: string | null }

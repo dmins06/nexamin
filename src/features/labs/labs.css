@@ -56,7 +56,7 @@
   .lab-card-action { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; }
   .lab-card-action p { margin: 0; }
   .lab-card-action .lab-launch { grid-column: 2; grid-row: 1 / 3; min-width: 0; }
-  .lab-workspace-nav { margin: 14px 0 16px; gap: 8px; }
+  .lab-workspace-nav { margin: 4px 0 6px; gap: 4px; }
   .lab-breadcrumb { font-size: 11px; gap: 2px; }
   .lab-breadcrumb button { font-size: 11px; }
 }

@@ -12,7 +12,7 @@ The global `ViewId` is `lab`. Sidebar and mobile-more show **Phòng Lab** after 
 
 To add a future lab, create its feature independently, add metadata to `labRegistry`, and register its lazy module in `labModules`. A metadata entry without a loader cannot launch. `coming-soon` entries remain disabled; `available` and `beta` require a matching loader. Do not eagerly import simulation packages into the Hub. No universal simulation framework or new router is introduced.
 
-Anatomy retains its current educational geometric demo, interaction controls, GLB pipeline and disclaimer. Real licensed assets can be installed using `public/models/anatomy/README.md`.
+Anatomy retains its interaction controls and now ships real licensed BodyParts3D-derived GLBs. Source, conversion and attribution details are in `docs/anatomy-assets.md`. The geometric demo remains only a marked development fallback for an empty manifest.
 
 ## Verification
 

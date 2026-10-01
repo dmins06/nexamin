@@ -4,7 +4,7 @@ import type { AnatomyPreferences, AnatomySceneState, AnatomyStructure } from './
 const KEY = 'nexamin.anatomy.v1'
 export function defaultAnatomyPreferences(): AnatomyPreferences {
   return {
-    version: 1, system: 'all', labels: false, xray: false,
+    version: 1, system: 'skeletal', labels: false, xray: false,
     systems: { skeletal: true, muscular: true, circulatory: true, respiratory: true, digestive: true, nervous: true, urinary: true, reproductive: true, endocrine: true, lymphatic: true, integumentary: true },
     layers: { skin: false, muscles: true, skeleton: true, organs: true, vessels: true, nerves: true },
     vessels: { arteries: true, veins: true, coronary: true, major: true },
@@ -30,7 +30,7 @@ export function isStructureVisible(item: AnatomyStructure, state: AnatomySceneSt
 export function revealStructure(state: AnatomySceneState, id: string): AnatomySceneState {
   const item = anatomyById.get(id)
   if (!item) return state
-  return { ...state, selectedId: id, system: state.system === item.system ? state.system : 'all',
+  return { ...state, selectedId: id, system: item.system,
     isolatedId: null, hiddenIds: state.hiddenIds.filter((hidden) => hidden !== id),
     systems: { ...state.systems, [item.system]: true }, layers: { ...state.layers, [item.layer]: true },
     vessels: item.vessel ? { ...state.vessels, [item.vessel.type]: true, [item.vessel.group]: true } : state.vessels,

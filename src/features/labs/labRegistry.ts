@@ -14,7 +14,7 @@ export const labRegistry: readonly LabDefinition[] = [{
   id: 'anatomy', title: 'Giải phẫu người 3D', category: 'medicine-biology', status: 'available',
   description: 'Khám phá cấu trúc cơ thể người theo từng hệ cơ quan bằng mô hình 3D tương tác.',
   tags: ['3D', 'Tương tác', 'Y – Sinh'],
-  note: 'Hiện là demo hình khối tương tác, chưa phải mô hình giải phẫu chính xác.',
+  note: 'Mô hình BodyParts3D có bản quyền mở; một số cấu trúc nhỏ và hệ cơ quan chưa được bổ sung.',
 }]
 export function labCategoryTitle(id: LabDefinition['category']) { return labCategories.find((category) => category.id === id)?.title ?? id }
 export function normalizeLabSearch(value: string) { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd') }

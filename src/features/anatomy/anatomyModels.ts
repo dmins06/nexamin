@@ -1,4 +1,5 @@
 import type { AnatomyManifest, AnatomyModel, VectorTuple } from './anatomyTypes'
+import { anatomyById } from './anatomyData'
 
 function vector(value: unknown): value is VectorTuple { return Array.isArray(value) && value.length === 3 && value.every((entry) => typeof entry === 'number' && Number.isFinite(entry)) }
 function model(value: unknown): value is AnatomyModel {
@@ -9,6 +10,9 @@ function model(value: unknown): value is AnatomyModel {
     && 'attribution' in value && typeof value.attribution === 'string' && value.attribution.length > 0
     && 'scale' in value && typeof value.scale === 'number' && Number.isFinite(value.scale) && value.scale > 0
     && 'position' in value && vector(value.position)
+    && 'structureIds' in value && Array.isArray(value.structureIds) && value.structureIds.length > 0
+    && value.structureIds.every((id: unknown) => typeof id === 'string' && anatomyById.has(id))
+    && new Set(value.structureIds).size === value.structureIds.length
 }
 export function parseAnatomyManifest(value: unknown): AnatomyManifest {
   if (!value || typeof value !== 'object' || !('version' in value) || value.version !== 1 || !('models' in value) || !Array.isArray(value.models) || !value.models.every(model)) throw new Error('Cấu hình mô hình không hợp lệ.')

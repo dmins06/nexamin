@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState, type ElementRef } from 'react'
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
-import { Box3, Material, Mesh, MeshStandardMaterial, Plane, Spherical, Vector3 } from 'three'
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ElementRef, type ReactNode } from 'react'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import { Html, OrbitControls, useGLTF, useProgress } from '@react-three/drei'
+import { Box3, Material, Mesh, MeshStandardMaterial, PerspectiveCamera, Plane, Spherical, Vector3 } from 'three'
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
-import { anatomyById, anatomyStructures } from './anatomyData'
+import { anatomyById, anatomyStructures, anatomySystems } from './anatomyData'
 import { isStructureVisible } from './anatomyState'
 import { clippingPlanes, resolveStructureId, structureColor } from './anatomyScene'
 import { AnatomyLabels, type AnatomyAnchor } from './AnatomyLabels'
@@ -12,15 +12,18 @@ import type { AnatomyModel, AnatomySceneState, AnatomyViewerProps, CameraCommand
 // Retry helper intentionally shares the lazy viewer chunk: importing it must not eagerly load Three.js.
 // eslint-disable-next-line react-refresh/only-export-components
 export function clearModelCache(models: AnatomyModel[]) { models.forEach((model) => useGLTF.clear(model.url)) }
-function CameraRig({ command }: { command: CameraCommand }) {
+interface AnatomyBounds extends AnatomyAnchor { radius: number }
+function CameraRig({ command, focus }: { command: CameraCommand; focus?: AnatomyBounds }) {
   const controls = useRef<ElementRef<typeof OrbitControls>>(null)
   const { camera, invalidate } = useThree()
+  const destination = useRef<{ target: Vector3; position: Vector3 } | null>(null)
   useEffect(() => {
     const orbit = controls.current
     if (!orbit) return
     const offset = camera.position.clone().sub(orbit.target)
     const action = command.action
-    if (action === 'reset') { camera.position.set(0, 0.1, 7.5); orbit.target.set(0, 0.1, 0) }
+    destination.current = null
+    if (action === 'reset') { camera.position.set(0, 0.1, 6.3); orbit.target.set(0, 0.1, 0) }
     else if (action.startsWith('zoom-')) camera.position.copy(orbit.target).add(offset.multiplyScalar(action === 'zoom-in' ? 0.8 : 1.25).clampLength(1.1, 14))
     else if (action.startsWith('pan-')) {
       const vector = new Vector3().setFromMatrixColumn(camera.matrix, action === 'pan-left' || action === 'pan-right' ? 0 : 1).multiplyScalar(action === 'pan-left' || action === 'pan-down' ? -0.2 : 0.2)
@@ -35,7 +38,24 @@ function CameraRig({ command }: { command: CameraCommand }) {
     }
     orbit.update(); invalidate()
   }, [camera, command, invalidate])
-  return <OrbitControls ref={controls} makeDefault enableDamping={false} minDistance={1.1} maxDistance={14} />
+  useEffect(() => {
+    if (!focus || !controls.current) return
+    const target = new Vector3(...focus.position)
+    const direction = camera.position.clone().sub(controls.current.target).normalize()
+    const fov = camera instanceof PerspectiveCamera ? camera.fov : 42
+    const distance = Math.min(10, Math.max(1.25, focus.radius / Math.sin((fov * Math.PI) / 360) * 1.45))
+    destination.current = { target, position: target.clone().addScaledVector(direction, distance) }
+    invalidate()
+  }, [camera, focus, invalidate])
+  useFrame(() => {
+    const orbit = controls.current, next = destination.current
+    if (!orbit || !next) return
+    orbit.target.lerp(next.target, 0.24); camera.position.lerp(next.position, 0.24)
+    orbit.update()
+    if (orbit.target.distanceTo(next.target) + camera.position.distanceTo(next.position) < 0.008) destination.current = null
+    else invalidate()
+  })
+  return <OrbitControls ref={controls} makeDefault enableDamping={false} minDistance={0.5} maxDistance={14} />
 }
 function ContextMonitor({ onLost }: { onLost: () => void }) {
   const { gl } = useThree()
@@ -52,7 +72,7 @@ function DemoScene({ state, planes, onSelect }: { state: AnatomySceneState; plan
     <meshStandardMaterial color={structureColor(item)} emissive={state.selectedId === item.id ? '#30c7de' : '#000000'} emissiveIntensity={state.selectedId === item.id ? 0.65 : 0} transparent={state.xray} opacity={state.xray && state.selectedId !== item.id ? 0.2 : 1} depthWrite={!state.xray || state.selectedId === item.id} roughness={0.65} wireframe={item.id === 'skin' || item.id === 'skull'} clippingPlanes={planes} />
   </mesh>)}</>
 }
-interface ModelProps { model: AnatomyModel; state: AnatomySceneState; planes: Plane[]; onSelect: AnatomyViewerProps['onSelect']; onAnchors: (modelId: string, anchors: AnatomyAnchor[]) => void }
+interface ModelProps { model: AnatomyModel; state: AnatomySceneState; planes: Plane[]; onSelect: AnatomyViewerProps['onSelect']; onAnchors: (modelId: string, anchors: AnatomyBounds[]) => void }
 function ModelScene({ model, state, planes, onSelect, onAnchors }: ModelProps) {
   // GLTF's immutable geometries and textures stay cached; only the owned scene/materials are disposed.
   // Uncompressed/self-contained GLBs are the baseline. Compression decoders can be self-hosted later.
@@ -79,7 +99,7 @@ function ModelScene({ model, state, planes, onSelect, onAnchors }: ModelProps) {
     scene.updateMatrixWorld(true)
     const boxes = new Map<string, Box3>()
     entries.forEach(({ mesh, id }) => { const box = new Box3().setFromObject(mesh); boxes.set(id, boxes.get(id)?.union(box) ?? box) })
-    const anchors: AnatomyAnchor[] = Array.from(boxes, ([id, box]) => { const center = box.getCenter(new Vector3()); return { id, position: [center.x, center.y, center.z] } })
+    const anchors: AnatomyBounds[] = Array.from(boxes, ([id, box]) => { const center = box.getCenter(new Vector3()); return { id, position: [center.x, center.y, center.z], radius: box.getSize(new Vector3()).length() / 2 } })
     onAnchors(model.id, anchors)
     return () => onAnchors(model.id, [])
   }, [entries, model.id, onAnchors, scene])
@@ -88,7 +108,8 @@ function ModelScene({ model, state, planes, onSelect, onAnchors }: ModelProps) {
       const item = anatomyById.get(id)
       mesh.visible = !!item && isStructureVisible(item, state)
       materials.forEach((material) => {
-        material.clippingPlanes = planes; material.transparent = state.xray; material.opacity = state.xray && id !== state.selectedId ? 0.2 : 1; material.depthWrite = !state.xray || id === state.selectedId
+        const outer = item?.layer === 'skin' || item?.layer === 'muscles' || item?.layer === 'skeleton'
+        material.clippingPlanes = planes; material.transparent = state.xray; material.opacity = state.xray && id !== state.selectedId ? outer ? 0.18 : 0.92 : 1; material.depthWrite = !state.xray || !outer || id === state.selectedId
         if (material instanceof MeshStandardMaterial) {
           if (item?.vessel) material.color.set(structureColor(item))
           material.emissive.set(id === state.selectedId ? '#30c7de' : '#000000'); material.emissiveIntensity = id === state.selectedId ? 0.65 : 0
@@ -100,17 +121,31 @@ function ModelScene({ model, state, planes, onSelect, onAnchors }: ModelProps) {
   if (!entries.length) throw new Error(`Không có đối tượng được ánh xạ trong mô hình ${model.id}.`)
   return <primitive object={scene} dispose={null} onClick={(event: ThreeEvent<MouseEvent>) => { const id = resolveStructureId(event.object); if (id) choose(event, id, planes, onSelect) }} />
 }
-function Scene({ state, models, command, onSelect, onContextLost }: AnatomyViewerProps) {
+class ModelBoundary extends Component<{ id: string; onFailure: (id: string) => void; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  componentDidCatch() { this.props.onFailure(this.props.id) }
+  render() { return this.state.failed ? null : this.props.children }
+}
+function ModelLoading({ id }: { id: string }) {
+  const { progress } = useProgress()
+  const label = anatomySystems.find((system) => system.id === id)?.label ?? id
+  return <Html center className="anatomy-model-loading"><span role="status">Đang tải {label} · {Math.round(progress)}%</span></Html>
+}
+function Scene({ state, models, command, onSelect, onContextLost, onModelFailure }: AnatomyViewerProps) {
   const planes = useMemo(() => clippingPlanes(state.section), [state.section])
-  const [modelAnchors, setModelAnchors] = useState<Record<string, AnatomyAnchor[]>>({})
-  const [onAnchors] = useState(() => (id: string, anchors: AnatomyAnchor[]) => setModelAnchors((previous) => ({ ...previous, [id]: anchors })))
+  const [modelAnchors, setModelAnchors] = useState<Record<string, AnatomyBounds[]>>({})
+  const [onAnchors] = useState(() => (id: string, anchors: AnatomyBounds[]) => setModelAnchors((previous) => ({ ...previous, [id]: anchors })))
   const anchors = models.length ? Object.values(modelAnchors).flat() : anatomyStructures.map((item) => ({ id: item.id, position: item.demo.position }))
+  const focusId = state.selectedId ?? state.isolatedId
+  const focus = focusId ? Object.values(modelAnchors).flat().find((anchor) => anchor.id === focusId) : undefined
   const visibleAnchors = Array.from(new Map(anchors.filter((anchor) => { const item = anatomyById.get(anchor.id); return item && isStructureVisible(item, state) }).map((anchor) => [anchor.id, anchor])).values())
-  return <><ambientLight intensity={1.15} /><directionalLight position={[4, 5, 6]} intensity={2.2} /><directionalLight position={[-3, 1, -3]} intensity={1} color="#84c9e3" /><CameraRig command={command} /><ContextMonitor onLost={onContextLost} />
-    {models.length ? models.map((model) => <ModelScene key={model.id} model={model} state={state} planes={planes} onSelect={onSelect} onAnchors={onAnchors} />) : <DemoScene state={state} planes={planes} onSelect={onSelect} />}
+  const activeModels = models.filter((model) => model.structureIds.some((id) => { const item = anatomyById.get(id); return item && isStructureVisible(item, state) }))
+  return <><ambientLight intensity={1.15} /><directionalLight position={[4, 5, 6]} intensity={2.2} /><directionalLight position={[-3, 1, -3]} intensity={1} color="#84c9e3" /><CameraRig command={command} focus={focus} /><ContextMonitor onLost={onContextLost} />
+    {models.length ? activeModels.map((model) => <ModelBoundary key={model.id} id={model.id} onFailure={onModelFailure ?? (() => undefined)}><Suspense fallback={<ModelLoading id={model.id} />}><ModelScene model={model} state={state} planes={planes} onSelect={onSelect} onAnchors={onAnchors} /></Suspense></ModelBoundary>) : <DemoScene state={state} planes={planes} onSelect={onSelect} />}
     {state.labels && <AnatomyLabels anchors={visibleAnchors} selectedId={state.selectedId} planes={planes} onSelect={onSelect} />}
   </>
 }
 export default function AnatomyViewer(props: AnatomyViewerProps) {
-  return <Canvas camera={{ position: [0, 0.1, 7.5], fov: 42, near: 0.05, far: 100 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} onCreated={({ gl }) => { gl.localClippingEnabled = true }} onPointerMissed={() => props.onSelect(null)} fallback={<p>Trình duyệt chưa hỗ trợ canvas. Hãy mở bằng trình duyệt hỗ trợ WebGL.</p>}><Scene {...props} /></Canvas>
+  return <Canvas camera={{ position: [0, 0.1, 6.3], fov: 42, near: 0.05, far: 100 }} dpr={[1, 1.5]} frameloop="demand" gl={{ antialias: true, alpha: true, powerPreference: 'low-power' }} onCreated={({ gl }) => { gl.localClippingEnabled = true }} onPointerMissed={() => props.onSelect(null)} fallback={<p>Trình duyệt chưa hỗ trợ canvas. Hãy mở bằng trình duyệt hỗ trợ WebGL.</p>}><Scene {...props} /></Canvas>
 }

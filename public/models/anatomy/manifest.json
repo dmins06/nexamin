@@ -1,4 +1,168 @@
 {
   "version": 1,
-  "models": []
+  "models": [
+    {
+      "id": "circulatory",
+      "url": "/models/anatomy/circulatory.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "aorta",
+        "superior-vena-cava",
+        "inferior-vena-cava",
+        "pulmonary-artery",
+        "pulmonary-vein",
+        "carotid-artery",
+        "radial-artery",
+        "femoral-artery",
+        "coronary-arteries",
+        "coronary-veins",
+        "heart"
+      ]
+    },
+    {
+      "id": "skeletal",
+      "url": "/models/anatomy/skeletal.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "skull",
+        "spine",
+        "femur",
+        "rib-cage",
+        "pelvis",
+        "humerus",
+        "forearm-bones",
+        "lower-leg-bones",
+        "hand-bones",
+        "foot-bones",
+        "other-bones"
+      ]
+    },
+    {
+      "id": "muscular",
+      "url": "/models/anatomy/muscular.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "biceps",
+        "deltoid",
+        "pectoralis-major",
+        "quadriceps"
+      ]
+    },
+    {
+      "id": "respiratory",
+      "url": "/models/anatomy/respiratory.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "lungs"
+      ]
+    },
+    {
+      "id": "digestive",
+      "url": "/models/anatomy/digestive.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "liver",
+        "stomach",
+        "small-intestine",
+        "large-intestine"
+      ]
+    },
+    {
+      "id": "nervous",
+      "url": "/models/anatomy/nervous.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "brain",
+        "spinal-cord"
+      ]
+    },
+    {
+      "id": "urinary",
+      "url": "/models/anatomy/urinary.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "kidneys",
+        "bladder"
+      ]
+    },
+    {
+      "id": "lymphatic",
+      "url": "/models/anatomy/lymphatic.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "spleen"
+      ]
+    },
+    {
+      "id": "integumentary",
+      "url": "/models/anatomy/integumentary.glb",
+      "license": "CC BY 4.0",
+      "attribution": "BodyParts3D, © The Database Center for Life Science",
+      "scale": 1,
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "structureIds": [
+        "skin"
+      ]
+    }
+  ]
 }

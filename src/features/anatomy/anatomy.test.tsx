@@ -6,6 +6,7 @@ import AnatomyWorkspace from './AnatomyWorkspace'
 import { anatomyById, anatomyStructures } from './anatomyData'
 import { defaultAnatomyPreferences, isStructureVisible, loadAnatomyPreferences, revealStructure } from './anatomyState'
 import { parseAnatomyManifest } from './anatomyModels'
+import { createAnatomyQuiz } from './anatomyQuiz'
 import { clippingPlanes, resolveStructureId, structureColor } from './anatomyScene'
 import type { AnatomySceneState, AnatomyViewerProps } from './anatomyTypes'
 
@@ -62,6 +63,20 @@ describe('Anatomy workspace without a GPU', () => {
     await user.click(screen.getByText('Mất WebGL'))
     expect(await screen.findByText('Không thể tải mô hình giải phẫu.')).toBeInTheDocument()
   })
+  it('runs a small real-structure quiz without revealing the answer first', async () => {
+    const user = userEvent.setup(); render(<AnatomyWorkspace />); await screen.findByTestId('mock-viewer')
+    await user.click(screen.getByRole('button', { name: 'Tự kiểm tra' }))
+    expect(screen.getByRole('heading', { name: 'Đây là bộ phận nào?' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Hộp sọ' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('scene-state')).toHaveTextContent('"isolatedId":"skull"')
+    await user.click(within(screen.getByRole('region', { name: 'Tự kiểm tra giải phẫu' })).getByRole('button', { name: 'Hộp sọ' }))
+    expect(within(screen.getByRole('region', { name: 'Tự kiểm tra giải phẫu' })).getByRole('status')).toHaveTextContent('Chính xác!')
+    await user.click(screen.getByRole('button', { name: 'Câu tiếp theo' }))
+    expect(screen.getByTestId('scene-state')).toHaveTextContent('"isolatedId":"spine"')
+    await user.click(screen.getByRole('button', { name: 'Kết thúc' }))
+    expect(screen.queryByRole('heading', { name: 'Đây là bộ phận nào?' })).not.toBeInTheDocument()
+    expect(screen.getByTestId('scene-state')).toHaveTextContent('"isolatedId":null')
+  })
   it('handles manifest failure and retry', async () => {
     const fetcher = vi.mocked(fetch); fetcher.mockRejectedValueOnce(new Error('offline'))
     const user = userEvent.setup(); render(<AnatomyWorkspace />)
@@ -86,7 +101,7 @@ describe('Anatomy data, mapping and visibility', () => {
   })
   it('intersects systems, layers, vessel filters and isolation, then reveals safely', () => {
     const item = anatomyById.get('aorta'); if (!item) throw new Error('Missing fixture')
-    let current = state(); expect(isStructureVisible(item, current)).toBe(true)
+    let current: AnatomySceneState = { ...state(), system: 'circulatory' }; expect(isStructureVisible(item, current)).toBe(true)
     current.vessels.arteries = false; expect(isStructureVisible(item, current)).toBe(false)
     current.hiddenIds = [item.id]; current.isolatedId = 'brain'; current.layers.vessels = false
     current = revealStructure(current, item.id); expect(isStructureVisible(item, current)).toBe(true)
@@ -106,5 +121,13 @@ describe('Anatomy data, mapping and visibility', () => {
   it('recovers from corrupt or obsolete persisted state', () => {
     localStorage.setItem('nexamin.anatomy.v1', '{broken'); expect(loadAnatomyPreferences()).toEqual(defaultAnatomyPreferences())
     localStorage.setItem('nexamin.anatomy.v1', '{"version":0}'); expect(loadAnatomyPreferences()).toEqual(defaultAnatomyPreferences())
+  })
+  it('only asks quiz questions about available real meshes with unique answers', () => {
+    expect(createAnatomyQuiz(new Set(['heart', 'liver', 'brain']), 0)).toBeNull()
+    const prompt = createAnatomyQuiz(new Set(['skull', 'spine', 'heart', 'brain', 'liver']), 4)
+    expect(prompt).not.toBeNull()
+    expect(prompt?.choices).toHaveLength(4)
+    expect(new Set(prompt?.choices).size).toBe(4)
+    expect(prompt?.choices).toContain(prompt?.structureId)
   })
 })
