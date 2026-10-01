@@ -1,0 +1,445 @@
+.it-lab {
+  min-width: 0;
+  color: var(--text);
+}
+.it-lab h1,
+.it-lab h2,
+.it-lab h3 {
+  font-family: var(--font-display);
+  margin: 0 0 12px;
+}
+.it-heading {
+  margin: 20px 0 24px;
+}
+.it-heading h1 {
+  font-size: clamp(24px, 3vw, 32px);
+  letter-spacing: -0.025em;
+}
+.it-heading p {
+  color: var(--text-muted);
+  margin: 8px 0 0;
+  max-width: 72ch;
+  line-height: 1.65;
+}
+.it-lab p {
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.it-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.it-breadcrumb a {
+  color: var(--accent);
+  text-underline-offset: 4px;
+  padding: 8px 0;
+}
+.it-catalog {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.it-card,
+.it-panel {
+  min-width: 0;
+  border: 1px solid var(--border);
+  background: var(--glass, var(--surface));
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(14px);
+}
+.it-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.it-card p {
+  margin: 0;
+  color: var(--text-muted);
+}
+.it-card-heading,
+.it-card-footer,
+.it-panel-heading {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.it-card-heading {
+  justify-content: flex-start;
+}
+.it-card-heading svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.it-card-heading h2 {
+  font-size: 19px;
+  margin: 0;
+}
+.it-topics {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.it-topics li,
+.it-status {
+  background: var(--surface-soft);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.it-status.beta {
+  color: var(--success);
+}
+.it-card-footer {
+  margin-top: auto;
+}
+.it-button {
+  min-height: 44px;
+  padding: 9px 12px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.it-button:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--surface-soft);
+}
+.it-button.primary {
+  background: color-mix(in srgb, var(--primary) 80%, #000);
+  color: #fff;
+  border-color: transparent;
+}
+.it-button.primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--primary) 85%, #000);
+}
+.it-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.it-lab :is(button, a, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.it-lab label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+.it-lab :is(input, textarea, select) {
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 12px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 400;
+  border-radius: 9px;
+  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  caret-color: var(--accent);
+}
+.it-lab textarea {
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.it-lab input::placeholder,
+.it-lab textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+.it-code-toolbar,
+.it-controls,
+.it-algorithm-input {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.it-code-toolbar label {
+  min-width: 130px;
+}
+.it-grow {
+  flex: 1;
+}
+.it-code-workspace {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.65fr) minmax(280px, 1.65fr) minmax(
+      200px,
+      1fr
+    );
+  gap: 16px;
+  align-items: start;
+}
+.it-panel h2 {
+  font-size: 18px;
+}
+.it-panel h3 {
+  font-size: 15px;
+  margin-top: 22px;
+}
+.it-panel-heading h2 {
+  margin: 0;
+}
+.it-small {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.it-lab pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-height: 260px;
+  overflow: auto;
+  font-size: 13px;
+  line-height: 1.65;
+  background: var(--surface-soft);
+  padding: 12px;
+  border-radius: 8px;
+  margin: 8px 0 16px;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.it-editor {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 16px 0 10px;
+}
+.it-editor .cm-scroller {
+  max-height: 480px;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.it-editor:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+.it-editor .cm-editor .cm-tooltip {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+.it-test-cases {
+  margin-top: 18px;
+}
+.it-test-cases ol {
+  padding-left: 24px;
+}
+.it-test-cases li {
+  padding: 6px 0;
+}
+.it-lab summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: 10px 0;
+  font-weight: 600;
+}
+.it-test-cases summary svg {
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.it-error {
+  color: var(--danger);
+}
+.it-algorithm-input > label:not(.it-grow, .it-wide, .it-check) {
+  max-width: 230px;
+}
+.it-wide {
+  flex-basis: 100%;
+}
+.it-lab .it-check {
+  flex-direction: row;
+  align-items: center;
+  min-height: 44px;
+}
+.it-lab .it-check input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--primary);
+}
+.it-algorithm-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-bottom: 18px;
+}
+.it-operation {
+  min-height: 52px;
+  color: var(--accent);
+}
+.it-array {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 0;
+  min-height: 160px;
+  align-content: center;
+}
+.it-array-item {
+  min-width: 46px;
+  text-align: center;
+}
+.it-array-item strong {
+  display: block;
+  font:
+    600 17px ui-monospace,
+    SFMono-Regular,
+    Consolas,
+    monospace;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-raised);
+}
+.it-array-item span {
+  display: block;
+  padding-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.it-array-item.active strong {
+  border-color: var(--accent);
+  background: var(--surface-soft);
+}
+.it-array-item.settled strong {
+  border-color: var(--success);
+}
+.it-metrics,
+.it-distances {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.it-metrics dt,
+.it-distances dt {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.it-metrics dd,
+.it-distances dd {
+  margin: 6px 0 0;
+  font-size: 18px;
+}
+.it-pseudocode {
+  padding: 0;
+  list-style-position: inside;
+  font-size: 12px;
+}
+.it-pseudocode li {
+  padding: 8px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text-muted);
+}
+.it-pseudocode li.active {
+  background: var(--surface-soft);
+  color: var(--accent);
+  outline: 1px solid var(--border-strong);
+}
+.it-graph {
+  display: block;
+  max-width: 460px;
+  width: 100%;
+  margin: 0 auto;
+  color: var(--text-muted);
+}
+.it-graph line {
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+.it-graph text {
+  fill: var(--text);
+  font-size: 13px;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.it-node circle {
+  fill: var(--surface-raised);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+.it-node.settled circle {
+  stroke: var(--success);
+}
+.it-node.active circle,
+.it-graph .active line {
+  stroke: var(--accent);
+  stroke-width: 3;
+}
+.it-controls label {
+  max-width: 100px;
+}
+.it-lab ::selection {
+  background: var(--primary);
+  color: #fff;
+}
+@media (max-width: 1200px) {
+  .it-code-workspace {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  }
+  .it-exercise {
+    grid-column: 1/-1;
+  }
+}
+@media (max-width: 760px) {
+  .it-catalog,
+  .it-code-workspace,
+  .it-algorithm-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .it-card,
+  .it-panel {
+    padding: 16px;
+  }
+  .it-code-editor {
+    grid-row: 1;
+  }
+  .it-output {
+    grid-row: 2;
+  }
+  .it-exercise {
+    grid-row: 3;
+  }
+  .it-code-toolbar label {
+    flex: 1;
+  }
+  .it-array {
+    gap: 6px;
+  }
+  .it-array-item {
+    min-width: 40px;
+  }
+  .it-algorithm-input > label,
+  .it-algorithm-input > .it-grow {
+    flex-basis: 100%;
+    max-width: none !important;
+  }
+}

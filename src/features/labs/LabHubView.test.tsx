@@ -21,26 +21,26 @@ function renderLab(initialPath = '/labs') {
 }
 
 describe('Lab Hub', () => {
-  it('starts at All and exposes Anatomy as the only released lab without rendering it', () => {
+  it('exposes Anatomy and CNTT without rendering either simulation', () => {
     renderLab()
     expect(screen.getByRole('button', { name: 'Tất cả' })).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByRole('article', { name: 'Giải phẫu người 3D' })).toBeInTheDocument()
     expect(simulation.rendered).not.toHaveBeenCalled()
-    expect(screen.getAllByRole('button', { name: 'Khám phá' })).toHaveLength(1)
+    expect(screen.getAllByRole('button', { name: 'Khám phá' })).toHaveLength(2)
   })
   it('filters medicine and every future category without inventing available simulations', async () => {
     const user = userEvent.setup(); renderLab()
     const fields = within(screen.getByRole('group', { name: 'Lọc theo lĩnh vực' }))
     await user.click(fields.getByRole('button', { name: 'Y – Sinh' }))
     expect(screen.getByRole('article', { name: 'Giải phẫu người 3D' })).toBeInTheDocument()
-    for (const category of labCategories.filter((item) => item.id !== 'medicine-biology')) {
+    for (const category of labCategories.filter((item) => !['medicine-biology','computing'].includes(item.id))) {
       await user.click(fields.getByRole('button', { name: category.title }))
       expect(fields.getByRole('button', { name: category.title })).toHaveAttribute('aria-pressed', 'true')
       expect(screen.getByText('Lĩnh vực này đang phát triển.')).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Khám phá' })).not.toBeInTheDocument()
     }
     await user.click(screen.getByRole('button', { name: 'Xem tất cả lab' }))
-    expect(screen.getByRole('button', { name: 'Khám phá' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Khám phá' })).toHaveLength(2)
   })
   it('finds Anatomy without accents, opens the existing lazy view and returns with context', async () => {
     const user = userEvent.setup(); renderLab()
@@ -65,15 +65,15 @@ describe('Lab Hub', () => {
   })
   it('recognizes an unreleased field in search without suggesting a missing lab', async () => {
     const user = userEvent.setup(); renderLab()
-    await user.type(screen.getByRole('searchbox'), 'cong nghe thong tin')
-    expect(screen.getByText('Công nghệ thông tin đang phát triển.')).toBeInTheDocument()
+    await user.type(screen.getByRole('searchbox'), 'dien')
+    expect(screen.getByText('Điện – Điện tử đang phát triển.')).toBeInTheDocument()
     expect(screen.queryByText('Không tìm thấy lab phù hợp.')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Khám phá' })).not.toBeInTheDocument()
   })
   it('contains a module failure while keeping Back available and retries', async () => {
     simulation.fail = true; vi.spyOn(console, 'error').mockImplementation(() => undefined)
     const user = userEvent.setup(); renderLab()
-    await user.click(screen.getByRole('button', { name: 'Khám phá' }))
+    await user.click(within(screen.getByRole('article', {name:'Giải phẫu người 3D'})).getByRole('button', { name: 'Khám phá' }))
     expect(await screen.findByText('Không thể mở phòng lab.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Quay lại Phòng Lab' })).toBeInTheDocument()
     simulation.fail = false

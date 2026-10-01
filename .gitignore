@@ -24,3 +24,4 @@ migration-data/
 .impeccable/hook.cache.json
 backend/data/uth_curricula.json
 .vercel
+public/runtimes/code/

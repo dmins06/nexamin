@@ -1,0 +1,82 @@
+{
+  "PYTHON-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/python/cpython/v3.11.3/LICENSE",
+    "sha256": "3b2f81fe21d181c499c59a256c8e1968455d6689d269aa85373bfb6af41da3bf",
+    "bytes": 13936
+  },
+  "LLVM-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-8.0.1/llvm/LICENSE.TXT",
+    "sha256": "24b67da19b1422a819395738cb83ea34eee3fdce52870b0d1758524ba1615069",
+    "bytes": 3192
+  },
+  "LIBCXX-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/llvm/llvm-project/llvmorg-8.0.1/libcxx/LICENSE.TXT",
+    "sha256": "c3b21ee90de785b9e45590253fd08fb22b269abccaadb175c4d96d7f420340cd",
+    "bytes": 3493
+  },
+  "QUICKJS-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/bellard/quickjs/master/LICENSE",
+    "sha256": "598fd7fc928e4350abce36e337ba5a1346923c5c692f5be92c3d8e29ddd7c18d",
+    "bytes": 1130
+  },
+  "WASMEDGE-QUICKJS-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/second-state/wasmedge-quickjs/main/LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+    "bytes": 11357
+  },
+  "OPENJDK-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/openjdk/jdk8u/master/LICENSE",
+    "sha256": "4b9abebc4338048a7c2dc184e9f800deb349366bdf28eb23c2677a77b4c87726",
+    "bytes": 19274
+  },
+  "VMWARE-LICENSE.txt": {
+    "url": "https://raw.githubusercontent.com/vmware-labs/webassembly-language-runtimes/main/LICENSE",
+    "sha256": "a7e361ef8f8946dbb02df66d10999fbf96a4d118618941199cfadc19efc668b5",
+    "bytes": 10449
+  },
+  "browserfs.tgz": {
+    "url": "https://registry.npmjs.org/browserfs/-/browserfs-1.4.3.tgz",
+    "sha256": "9ea8d32be9b14b868631fee2cad5de3baa0e095a6af243644382396abe7d179c",
+    "bytes": 1420417
+  },
+  "clang-fs.tar.gz": {
+    "url": "https://runno.dev/langs/clang-fs.tar.gz",
+    "sha256": "7ed12063619882e4dfa710ab371fc91848b256f85a4075747e8bd5c167902b50",
+    "bytes": 1790862
+  },
+  "wasmedge_quickjs.wasm": {
+    "url": "https://runno.dev/langs/wasmedge_quickjs.wasm",
+    "sha256": "85922baafd4385bc908d766989948df9ab28f8f0c8afd2ab6b35a4950570d0f6",
+    "bytes": 3974159
+  },
+  "python-3.11.3.tar.gz": {
+    "url": "https://runno.dev/langs/python-3.11.3.tar.gz",
+    "sha256": "8c42694e45f2f1162114c70507c3da4c7cf983663e2b95660af521a9685d2a0c",
+    "bytes": 4066590
+  },
+  "doppio.tgz": {
+    "url": "https://registry.npmjs.org/doppiojvm/-/doppiojvm-0.5.0.tgz",
+    "sha256": "62ce4d126c934a899487d12c2bb19175e9ce3cba5ee02d67a00fe8ee158d6ff2",
+    "bytes": 4234383
+  },
+  "wasm-ld.wasm": {
+    "url": "https://runno.dev/langs/wasm-ld.wasm",
+    "sha256": "36419ed202011765222098d7701218378b67f634d50f0a4625059ae2c9860f48",
+    "bytes": 19490094
+  },
+  "python-3.11.3.wasm": {
+    "url": "https://runno.dev/langs/python-3.11.3.wasm",
+    "sha256": "658cb6add2bbf8dfe84d67fb85430956d5a8b2b1d694d33432d654cdf048f813",
+    "bytes": 20538911
+  },
+  "clang.wasm": {
+    "url": "https://runno.dev/langs/clang.wasm",
+    "sha256": "2a466f0e990329d3230b869d04fc20803eae96a7feb3a3f6c93e25a77b8aed1d",
+    "bytes": 31214472
+  },
+  "java_home.tar.gz": {
+    "url": "https://github.com/plasma-umass/doppio_jcl/releases/download/v3.2/java_home.tar.gz",
+    "sha256": "bee079d16b8631ff56d3bdc66b4d03e0ecbf9ee46baeef9b041c0bc497f25c34",
+    "bytes": 39555339
+  }
+}

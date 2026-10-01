@@ -65,7 +65,7 @@ async function main() {
     await page.goto(`${base}/dashboard`)
     const nav = page.getByRole('navigation', { name: 'Điều hướng chính' })
     await nav.getByRole('button', { name: 'Phòng Lab' }).click()
-    await page.getByRole('button', { name: 'Khám phá', exact: true }).click()
+    await page.getByRole('article', {name:'Giải phẫu người 3D'}).getByRole('button', { name: 'Khám phá', exact: true }).click()
     assert.equal(new URL(page.url()).pathname, '/labs/anatomy')
     assert.equal(await nav.getByRole('button', { name: 'Phòng Lab' }).getAttribute('aria-current'), 'page')
     await page.goBack()

@@ -15,6 +15,11 @@ export const labRegistry: readonly LabDefinition[] = [{
   description: 'Khám phá cấu trúc cơ thể người theo từng hệ cơ quan bằng mô hình 3D tương tác.',
   tags: ['3D', 'Tương tác', 'Y – Sinh'],
   note: 'Mô hình BodyParts3D có bản quyền mở; một số cấu trúc nhỏ và hệ cơ quan chưa được bổ sung.',
+}, {
+  id:'it',title:'CNTT Lab',category:'computing',status:'beta',
+  description:'Học lập trình với Code Lab và theo dõi thuật toán qua mô phỏng từng bước.',
+  tags:['Lập trình','Thuật toán','Tương tác'],
+  note:'Chạy code tách biệt trên thiết bị của bạn. Các lab hệ thống khác đang phát triển.',
 }]
 export function labCategoryTitle(id: LabDefinition['category']) { return labCategories.find((category) => category.id === id)?.title ?? id }
 export function normalizeLabSearch(value: string) { return value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd') }
