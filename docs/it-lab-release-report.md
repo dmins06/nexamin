@@ -16,3 +16,14 @@
 14. **Bước tiếp:** Phase 2: CPU Fetch–Decode–Execute có ghi rõ mô hình đơn giản; OS Scheduling + kiểm thử phép tính; SQLite WASM riêng trong Worker, không nối SQL sinh viên với DB thật. Sau đó Phase 3 network/ML/security sandbox.
 
 Hướng dẫn mở rộng: `it-lab.md`. Nguồn và license runtime: `code-runtime-notices.md`.
+
+## Kết quả website
+
+Feature commit `fa4bd5ac9d9db227db2d5d7a64317e801b5a2ed9`: Vercel báo `success`, deployment `CDd7xznmNF7fDAS85Rsx8pKxLTNb`. Đã kiểm tra tại `https://nexamin.id.vn`:
+
+- Code Lab chạy thật Python, C, C++, Java và JavaScript, cùng stdin/stdout; test tổng hai số đạt 3/3.
+- Algorithm Lab: 10 lựa chọn, bước trước/sau, mã giả đồng bộ, Play/Pause, dữ liệu không hợp lệ và sáu trang lộ trình.
+- Routes cũ: direct link + refresh, browser history, mobile navigation, 404 và yêu cầu đăng nhập ở deep link; có hồi quy Giải phẫu 3D.
+- Runtime source/license notices đã được phục vụ tại `/runtimes/code/SOURCES.md`.
+
+Compiler/runtime trên website **không mock**; session/profile API vẫn dùng fixture QA, không chứng nhận đã đăng nhập bằng tài khoản người dùng thật. Các probe cách ly chỉ chạy localhost, **không chạy trên production**. Đây là smoke test và hồi quy, không phải chứng nhận hệ thống không có lỗ hổng. Commit tài liệu/QA kế tiếp không đổi frontend/runtime.

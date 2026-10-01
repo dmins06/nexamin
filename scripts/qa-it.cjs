@@ -319,7 +319,9 @@ async function main() {
     console.log(
       process.env.QA_CAPTURE_ONLY
         ? '12 responsive dark/light captures passed'
-        : 'IT routes, 5 real languages, local security probes, tests and algorithms passed',
+        : process.env.QA_SMOKE_ONLY
+          ? 'Production smoke: IT routes, 5 real languages, public tests and algorithms passed; isolation probes skipped'
+          : 'IT routes, 5 real languages, local security probes, tests and algorithms passed',
     )
   } finally {
     await browser.close()
