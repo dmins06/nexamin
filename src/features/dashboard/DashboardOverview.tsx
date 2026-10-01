@@ -12,12 +12,13 @@ import {
   Target,
 } from 'lucide-react'
 import { type AcademicSummary, type Course, workspaceApi } from '../../lib/workspaceApi'
-import type { StudyState, StudyTask, ViewId } from '../../types'
+import { appPaths, type AppPath } from '../../routing/paths'
+import type { StudyState, StudyTask } from '../../types'
 
 interface DashboardOverviewProps {
   study: StudyState
   onToggleTask: (id: string) => void
-  onNavigate: (view: ViewId) => void
+  onNavigate: (path: AppPath) => void
 }
 
 const promptOptions = [
@@ -71,7 +72,7 @@ export function DashboardOverview({ study, onToggleTask, onNavigate }: Dashboard
 
   function openTutor(prompt?: string) {
     if (prompt) window.sessionStorage.setItem('studyhub.ai.draft.v1', prompt)
-    onNavigate('tutor')
+    onNavigate(appPaths.assistant)
   }
 
   const stats = [
@@ -96,11 +97,11 @@ export function DashboardOverview({ study, onToggleTask, onNavigate }: Dashboard
         <article className="dashboard-card schedule-glance glass-panel" aria-labelledby="today-schedule-title">
           <header className="dashboard-card-heading">
             <div><span>Lịch trình</span><h2 id="today-schedule-title">Hôm nay</h2></div>
-            <button className="card-link" type="button" onClick={() => onNavigate('schedule')}>Xem lịch <ArrowRight size={15} /></button>
+            <button className="card-link" type="button" onClick={() => onNavigate(appPaths.schedule)}>Xem lịch <ArrowRight size={15} /></button>
           </header>
           <div className="schedule-timeline">
             {todayTasks.length === 0 && (
-              <div className="dashboard-empty"><CalendarDays size={24} /><p>Hôm nay chưa có buổi học.</p><button type="button" onClick={() => onNavigate('schedule')}>Thêm lịch học</button></div>
+              <div className="dashboard-empty"><CalendarDays size={24} /><p>Hôm nay chưa có buổi học.</p><button type="button" onClick={() => onNavigate(appPaths.schedule)}>Thêm lịch học</button></div>
             )}
             {todayTasks.slice(0, 4).map((task) => (
               <div className={task.completed ? 'timeline-item is-complete' : 'timeline-item'} key={task.id}>
@@ -125,7 +126,7 @@ export function DashboardOverview({ study, onToggleTask, onNavigate }: Dashboard
 
       <section className="dashboard-grid dashboard-grid-secondary">
         <article className="dashboard-card progress-card glass-panel" aria-labelledby="learning-progress-title">
-          <header className="dashboard-card-heading"><div><span>Dữ liệu thật</span><h2 id="learning-progress-title">Tiến độ học tập</h2></div><button className="card-link" type="button" onClick={() => onNavigate('progress')}>Xem tiến độ <ArrowRight size={15} /></button></header>
+          <header className="dashboard-card-heading"><div><span>Dữ liệu thật</span><h2 id="learning-progress-title">Tiến độ học tập</h2></div><button className="card-link" type="button" onClick={() => onNavigate(appPaths.planner)}>Xem tiến độ <ArrowRight size={15} /></button></header>
           <div className="progress-card-body">
             <div className="dashboard-progress-ring" style={{ '--progress': progress } as CSSProperties}><span><strong>{progress}%</strong><small>hoàn thành</small></span></div>
             <div className="progress-facts">
@@ -137,11 +138,11 @@ export function DashboardOverview({ study, onToggleTask, onNavigate }: Dashboard
         </article>
 
         <article className="dashboard-card goals-card glass-panel" aria-labelledby="goals-title">
-          <header className="dashboard-card-heading"><div><span>Kế hoạch</span><h2 id="goals-title">Mục tiêu sắp tới</h2></div><button className="card-link" type="button" onClick={() => onNavigate('progress')}>Tất cả <ArrowRight size={15} /></button></header>
+          <header className="dashboard-card-heading"><div><span>Kế hoạch</span><h2 id="goals-title">Mục tiêu sắp tới</h2></div><button className="card-link" type="button" onClick={() => onNavigate(appPaths.planner)}>Tất cả <ArrowRight size={15} /></button></header>
           <div className="goal-list">
             {upcomingTasks.length === 0 && <div className="dashboard-empty compact"><Target size={22} /><p>Chưa có mục tiêu sắp tới.</p></div>}
             {upcomingTasks.map((task) => (
-              <button type="button" className="goal-row" key={task.id} onClick={() => onNavigate('schedule')}>
+              <button type="button" className="goal-row" key={task.id} onClick={() => onNavigate(appPaths.schedule)}>
                 <span className={`goal-marker ${task.tone}`} aria-hidden="true" />
                 <span><strong>{task.title}</strong><small>{task.scheduledDate === todayKey ? 'Hôm nay' : task.scheduledDate} · {formatTaskTime(task)}</small></span>
                 <ArrowRight size={15} />

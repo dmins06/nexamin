@@ -1,0 +1,32 @@
+.route-loading {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  color: var(--app-muted);
+  font-size: 13px;
+}
+
+.route-not-found-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.page-view.route-not-found {
+  min-height: 0;
+}
+
+.route-not-found .page-intro {
+  margin-bottom: 24px;
+}
+
+.route-not-found-actions .secondary-action {
+  min-height: 44px;
+  text-decoration: none;
+}
+
+.mobile-more button[aria-current='page'] {
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--primary) 18%, var(--glass-soft));
+  font-weight: 600;
+}

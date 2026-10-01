@@ -1,9 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthGate } from './AuthGate'
 
 describe('AuthGate', () => {
+  afterEach(cleanup)
   beforeEach(() => {
+    window.history.replaceState({}, '', '/')
     sessionStorage.clear()
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -33,5 +35,18 @@ describe('AuthGate', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalled())
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(sessionStorage.getItem('studyhub.auth.v1')).not.toBeNull()
+  })
+
+  it('keeps a protected deep link through login', async () => {
+    window.history.replaceState({}, '', '/labs/anatomy')
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ access_token: 'access', refresh_token: 'refresh', token_type: 'bearer', expires_in: 3600 }), { status: 200, headers: { 'Content-Type': 'application/json' } })))
+    render(<AuthGate><p>Protected Anatomy</p></AuthGate>)
+    expect(screen.getByRole('heading', { name: 'Tiếp tục buổi học' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/labs/anatomy')
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'student@example.edu' } })
+    fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'password' } })
+    fireEvent.submit(screen.getByRole('button', { name: 'Đăng nhập' }).closest('form')!)
+    await waitFor(() => expect(screen.getByText('Protected Anatomy')).toBeInTheDocument())
+    expect(window.location.pathname).toBe('/labs/anatomy')
   })
 })

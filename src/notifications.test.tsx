@@ -69,7 +69,7 @@ describe('community notification', () => {
 
   it('shows a community red-dot only for incoming friend requests and no message red-dot', async () => {
     render(<App />)
-    expect(await screen.findAllByLabelText('Có lời mời kết bạn mới')).toHaveLength(2)
+    expect(await screen.findAllByLabelText('Có lời mời kết bạn mới', {}, { timeout: 5000 })).toHaveLength(2)
     expect(screen.queryByLabelText('Có tin nhắn mới')).not.toBeInTheDocument()
   })
 
@@ -99,7 +99,7 @@ describe('message notification', () => {
 
   it('shows a red-dot status in friend navigation when messages are unread', async () => {
     render(<App />)
-    expect(await screen.findAllByLabelText('Có tin nhắn mới')).toHaveLength(2)
+    expect(await screen.findAllByLabelText('Có tin nhắn mới', {}, { timeout: 5000 })).toHaveLength(2)
   })
 
   it('refreshes the unread notification state after accepting a friend request', async () => {

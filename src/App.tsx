@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { BrowserRouter, matchPath, useLocation, useNavigate } from 'react-router'
 import {
   BarChart3,
   Bell,
@@ -30,43 +31,46 @@ import { formatVietnameseDate } from './lib/format'
 import { BrandLogo } from './components/BrandLogo'
 import { MobileSplash } from './components/MobileSplash'
 import { CosmicBackdrop } from './components/CosmicBackdrop'
-import { DashboardOverview } from './features/dashboard/DashboardOverview'
 import { type CalendarEvent, type UserProfile, workspaceApi } from './lib/workspaceApi'
-import { LibraryView, TutorView } from "./features/workspace/WorkspaceViews"
-import { CoursesView } from "./features/workspace/AcademicCoursesView"
-import { ScheduleView } from './features/schedule/ScheduleView'
-import { CommunityFeedView, MessagesView, ProfileView } from "./features/social/SocialViews"
-import { SettingsView } from "./features/settings/SettingsView"
-import { PracticeView } from './features/practice/PracticeView'
-import { LabHubView } from './features/labs/LabHubView'
-import { ElectivesView } from './features/electives/ElectivesView'
-import { AdminView } from './features/admin/AdminView'
 import { loadStudyState, saveStudyState } from './lib/storage'
-import type { StudyState, StudyTask, ViewId } from './types'
+import { AppRoutes } from './routing/AppRoutes'
+import { appPaths, titleForPath, type AppPath } from './routing/paths'
+import type { StudyState, StudyTask } from './types'
 
-const navItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
-  { id: 'overview', label: 'Trang chủ', icon: Home },
-  { id: 'schedule', label: 'Lịch học', icon: CalendarDays },
-  { id: 'courses', label: 'Học phần', icon: GraduationCap },
-  { id: 'progress', label: 'Kế hoạch', icon: BookOpen },
-  { id: 'practice', label: 'Luyện đề', icon: ClipboardList },
-  { id: 'lab', label: 'Phòng Lab', icon: FlaskConical },
-  { id: 'electives', label: 'Môn tự chọn', icon: Compass },
-  { id: 'library', label: 'Ghi chú', icon: NotebookPen },
-  { id: 'tutor', label: 'AI Assistant', icon: Bot },
-  { id: 'community', label: 'Cộng đồng', icon: Users },
-  { id: 'messages', label: 'Tin nhắn', icon: MessageCircle },
-  { id: 'settings', label: 'Cài đặt', icon: Settings },
+const navItems: Array<{ path: AppPath; label: string; icon: typeof Home }> = [
+  { path: appPaths.dashboard, label: 'Trang chủ', icon: Home },
+  { path: appPaths.schedule, label: 'Lịch học', icon: CalendarDays },
+  { path: appPaths.courses, label: 'Học phần', icon: GraduationCap },
+  { path: appPaths.planner, label: 'Kế hoạch', icon: BookOpen },
+  { path: appPaths.exams, label: 'Luyện đề', icon: ClipboardList },
+  { path: appPaths.labs, label: 'Phòng Lab', icon: FlaskConical },
+  { path: appPaths.electives, label: 'Môn tự chọn', icon: Compass },
+  { path: appPaths.notes, label: 'Ghi chú', icon: NotebookPen },
+  { path: appPaths.assistant, label: 'AI Assistant', icon: Bot },
+  { path: appPaths.community, label: 'Cộng đồng', icon: Users },
+  { path: appPaths.messages, label: 'Tin nhắn', icon: MessageCircle },
+  { path: appPaths.settings, label: 'Cài đặt', icon: Settings },
 ]
 
-const mobileNavItems: Array<{ id: ViewId; label: string; icon: typeof Home }> = [
-  { id: 'overview', label: 'Trang chủ', icon: Home },
-  { id: 'courses', label: 'Môn học', icon: GraduationCap },
-  { id: 'tutor', label: 'EminAI', icon: Bot },
-  { id: 'community', label: 'Cộng đồng', icon: Users },
-  { id: 'messages', label: 'Tin nhắn', icon: MessageCircle },
+const mobileNavItems: Array<{ path: AppPath; label: string; icon: typeof Home }> = [
+  { path: appPaths.dashboard, label: 'Trang chủ', icon: Home },
+  { path: appPaths.courses, label: 'Môn học', icon: GraduationCap },
+  { path: appPaths.assistant, label: 'EminAI', icon: Bot },
+  { path: appPaths.community, label: 'Cộng đồng', icon: Users },
+  { path: appPaths.messages, label: 'Tin nhắn', icon: MessageCircle },
 ]
 
+const mobileMoreItems: Array<{ path: AppPath; label: string; icon: typeof Home }> = [
+  { path: appPaths.schedule, label: 'Lịch học', icon: CalendarDays },
+  { path: appPaths.notes, label: 'Ghi chú', icon: Files },
+  { path: appPaths.planner, label: 'Kế hoạch', icon: BarChart3 },
+  { path: appPaths.exams, label: 'Luyện đề', icon: ClipboardList },
+  { path: appPaths.labs, label: 'Phòng Lab', icon: FlaskConical },
+  { path: appPaths.electives, label: 'Môn tự chọn', icon: Compass },
+  { path: appPaths.community, label: 'Cộng đồng', icon: Users },
+  { path: appPaths.messages, label: 'Tin nhắn', icon: MessageCircle },
+  { path: appPaths.settings, label: 'Cài đặt', icon: Settings },
+]
 
 function eventToTask(event: CalendarEvent): StudyTask | null {
   if (!event.event_type.startsWith('study_session')) return null
@@ -102,12 +106,14 @@ function taskToEvent(task: StudyTask): Omit<CalendarEvent, 'id' | 'created_at'> 
   }
 }
 
-function App() {
-  const [view, setView] = useState<ViewId>('overview')
+function AppContent() {
+  const location = useLocation()
+  const routerNavigate = useNavigate()
   const [study, setStudy] = useState<StudyState>(() =>
     loadStudyState(initialStudyState),
   )
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [friendRequestCount, setFriendRequestCount] = useState(0)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => localStorage.getItem('studyhub.theme.v1') === 'light' ? 'light' : 'dark')
@@ -120,7 +126,12 @@ function App() {
     localStorage.setItem('studyhub.theme.v1', theme)
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#070b14' : '#8bc9f0')
   }, [theme])
-  useEffect(() => { void workspaceApi.profile().then(setProfile).catch(() => undefined) }, [])
+  useEffect(() => { void workspaceApi.profile().then(setProfile).catch(() => undefined).finally(() => setProfileLoading(false)) }, [])
+  useEffect(() => { document.title = `${titleForPath(location.pathname)} | Nexamin` }, [location.pathname])
+  useEffect(() => {
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [location.pathname])
   useEffect(() => {
     const localTasks = initialTasks.current
     void workspaceApi.calendar().then(async (events) => {
@@ -201,19 +212,9 @@ function App() {
     catch (reason) { if (removed) setStudy((current) => ({ ...current, tasks: [...current.tasks, removed] })); throw reason }
   }
 
-  const navigate = useCallback((nextView: ViewId) => {
-    if (nextView === view) return
-    const transitionDocument = document as Document & {
-      startViewTransition?: (update: () => void) => { finished: Promise<void> }
-    }
-    const reduceMotion = typeof window.matchMedia === 'function'
-      && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduceMotion || !transitionDocument.startViewTransition) {
-      setView(nextView)
-      return
-    }
-    transitionDocument.startViewTransition(() => setView(nextView))
-  }, [view])
+  const navigate = useCallback((path: AppPath) => {
+    if (location.pathname !== path) routerNavigate(path)
+  }, [location.pathname, routerNavigate])
 
 
   return (
@@ -221,45 +222,26 @@ function App() {
       <CosmicBackdrop />
       <MobileSplash />
       <a className="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-      <Sidebar active={view} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
+      <Sidebar pathname={location.pathname} onNavigate={navigate} profile={profile} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
       <main className="main-content" id="main-content">
-        <Header profile={profile} onNavigate={navigate} theme={theme} onToggleTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
-        <div className={`view-stage view-stage-${view}`} key={view}>
+        <Header pathname={location.pathname} profile={profile} onNavigate={navigate} theme={theme} onToggleTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
+        <div className="view-stage" key={location.pathname}>
           <span className="view-stage-glint" aria-hidden="true" />
-          {view === 'overview' && (
-            <DashboardOverview study={study} onToggleTask={toggleTask} onNavigate={navigate} />
-          )}
-          {view === 'courses' && <CoursesView />}
-          {view === 'library' && <LibraryView />}
-          {view === 'tutor' && <TutorView />}
-          {view === 'schedule' && (
-            <ScheduleView
-              tasks={study.tasks}
-              onAddTask={addTask}
-              onToggleTask={toggleTask}
-              onDeleteTask={deleteTask}
-              onOpenCourses={() => navigate('courses')}
-            />
-          )}
-          {view === 'progress' && <ProgressView study={study} />}
-          {view === 'practice' && <PracticeView />}
-          {view === 'lab' && <LabHubView />}
-          {view === 'electives' && <ElectivesView onOpenProfile={() => navigate('profile')} />}
-          {view === 'community' && <CommunityFeedView profile={profile} />}
-          {view === 'messages' && <MessagesView ownId={profile?.id} onMessagesRead={refreshSocialIndicators} />}
-          {view === 'profile' && <ProfileView onProfileChange={setProfile} />}
-          {view === 'settings' && <SettingsView />}
-          {view === 'admin' && profile?.role === 'admin' && <AdminView ownId={profile.id} />}
+          <AppRoutes study={study} profile={profile} profileLoading={profileLoading} onNavigate={navigate} onToggleTask={toggleTask} onAddTask={addTask} onDeleteTask={deleteTask} onProfileChange={setProfile} onMessagesRead={refreshSocialIndicators} />
         </div>
       </main>
-      <MobileNav active={view} onNavigate={navigate} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
+      <MobileNav pathname={location.pathname} onNavigate={navigate} unreadMessages={unreadMessages} friendRequestCount={friendRequestCount} />
     </div>
   )
 }
 
 interface NavigationProps {
-  active: ViewId
-  onNavigate: (view: ViewId) => void
+  pathname: string
+  onNavigate: (path: AppPath) => void
+}
+
+function isActivePath(pathname: string, path: AppPath) {
+  return matchPath({ path, end: false }, pathname) !== null
 }
 
 function Brand({ onHome }: { onHome: () => void }) {
@@ -271,62 +253,62 @@ function Brand({ onHome }: { onHome: () => void }) {
   )
 }
 
-function Sidebar({ active, onNavigate, profile, unreadMessages, friendRequestCount }: NavigationProps & { profile: UserProfile | null; unreadMessages: number; friendRequestCount: number }) {
+function Sidebar({ pathname, onNavigate, profile, unreadMessages, friendRequestCount }: NavigationProps & { profile: UserProfile | null; unreadMessages: number; friendRequestCount: number }) {
   const displayName = profile?.full_name ?? "Sinh viên"
   const initials = displayName.split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase()
   return (
     <aside className="sidebar">
-      <Brand onHome={() => onNavigate('overview')} />
+      <Brand onHome={() => onNavigate(appPaths.dashboard)} />
       <nav aria-label="Điều hướng chính">
         {navItems.map((item) => {
           const Icon = item.icon
           return (
             <button
-              className={active === item.id ? 'nav-item active' : 'nav-item'}
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
+              className={isActivePath(pathname, item.path) ? 'nav-item active' : 'nav-item'}
+              key={item.path}
+              onClick={() => onNavigate(item.path)}
               aria-label={item.label}
               title={item.label}
-              aria-current={active === item.id ? 'page' : undefined}
+              aria-current={isActivePath(pathname, item.path) ? 'page' : undefined}
             >
               <Icon size={19} strokeWidth={1.8} />
               <span>{item.label}</span>
-              {item.id === 'messages' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
-              {item.id === 'community' && friendRequestCount > 0 && <span className="nav-unread-dot" aria-label="Có lời mời kết bạn mới" />}
+              {item.path === appPaths.messages && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
+              {item.path === appPaths.community && friendRequestCount > 0 && <span className="nav-unread-dot" aria-label="Có lời mời kết bạn mới" />}
             </button>
           )
         })}
-        {profile?.role === 'admin' && <button className={active === 'admin' ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate('admin')} aria-current={active === 'admin' ? 'page' : undefined}><Shield size={19} strokeWidth={1.8} /><span>Quản trị</span></button>}
+        {profile?.role === 'admin' && <button className={isActivePath(pathname, appPaths.admin) ? 'nav-item active' : 'nav-item'} onClick={() => onNavigate(appPaths.admin)} aria-current={isActivePath(pathname, appPaths.admin) ? 'page' : undefined}><Shield size={19} strokeWidth={1.8} /><span>Quản trị</span></button>}
       </nav>
       <div className="sidebar-note">
         <Sparkles size={17} aria-hidden="true" />
         <p>Mỗi phiên học là một dấu mốc nhỏ.</p>
       </div>
       <div className="student-chip">
-        <button className="student-profile-button" type="button" onClick={() => onNavigate('profile')}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName} {profile?.role === 'admin' && <BadgeCheck size={15} color="#48a8ff" aria-label="Quản trị viên Nexamin" />}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
-        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate('settings')}><Settings size={16} /></button>
+        <button className="student-profile-button" type="button" onClick={() => onNavigate(appPaths.profile)}>{profile?.avatar_url ? <img className="avatar" src={profile.avatar_url} alt="" /> : <span className="avatar">{initials}</span>}<span><strong>{displayName} {profile?.role === 'admin' && <BadgeCheck size={15} color="#48a8ff" aria-label="Quản trị viên Nexamin" />}</strong><small>{profile?.university?.short_name ?? "Sinh viên"}</small></span><UserRound size={16} aria-hidden="true" /></button>
+        <button className="settings-button" aria-label="Cài đặt" title="Cài đặt" onClick={() => onNavigate(appPaths.settings)}><Settings size={16} /></button>
       </div>
     </aside>
   )
 }
 
-function MobileNav({ active, onNavigate, unreadMessages, friendRequestCount }: NavigationProps & { unreadMessages: number; friendRequestCount: number }) {
+function MobileNav({ pathname, onNavigate, unreadMessages, friendRequestCount }: NavigationProps & { unreadMessages: number; friendRequestCount: number }) {
   return (
     <nav className="mobile-nav" aria-label="Điều hướng di động">
       {mobileNavItems.map((item) => {
         const Icon = item.icon
         return (
           <button
-            key={item.id}
-            className={active === item.id ? 'active' : ''}
-            onClick={() => onNavigate(item.id)}
+            key={item.path}
+            className={isActivePath(pathname, item.path) ? 'active' : ''}
+            onClick={() => onNavigate(item.path)}
             aria-label={item.label}
-            aria-current={active === item.id ? 'page' : undefined}
+            aria-current={isActivePath(pathname, item.path) ? 'page' : undefined}
           >
             <Icon size={20} />
             <span>{item.label}</span>
-              {item.id === 'messages' && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
-              {item.id === 'community' && friendRequestCount > 0 && <span className="nav-unread-dot" aria-label="Có lời mời kết bạn mới" />}
+              {item.path === appPaths.messages && unreadMessages > 0 && <span className="nav-unread-dot" aria-label="Có tin nhắn mới" />}
+              {item.path === appPaths.community && friendRequestCount > 0 && <span className="nav-unread-dot" aria-label="Có lời mời kết bạn mới" />}
           </button>
         )
       })}
@@ -335,15 +317,16 @@ function MobileNav({ active, onNavigate, unreadMessages, friendRequestCount }: N
 }
 
 interface HeaderProps {
+  pathname: string
   profile: UserProfile | null
-  onNavigate: (view: ViewId) => void
+  onNavigate: (path: AppPath) => void
   theme: 'dark' | 'light'
   onToggleTheme: () => void
   unreadMessages: number
   friendRequestCount: number
 }
 
-function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, friendRequestCount }: HeaderProps) {
+function Header({ pathname, profile, onNavigate, theme, onToggleTheme, unreadMessages, friendRequestCount }: HeaderProps) {
   const firstName = profile?.full_name.trim().split(/\s+/).at(-1) ?? 'bạn'
   const notificationCount = unreadMessages + friendRequestCount
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -359,9 +342,9 @@ function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, fri
     return () => window.removeEventListener('keydown', focusSearch)
   }, [])
 
-  function mobileNavigate(nextView: ViewId) {
+  function mobileNavigate(path: AppPath) {
     document.querySelector<HTMLDetailsElement>('.mobile-more')?.removeAttribute('open')
-    onNavigate(nextView)
+    onNavigate(path)
   }
 
   function search(event: React.FormEvent<HTMLFormElement>) {
@@ -369,21 +352,21 @@ function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, fri
     const form = event.currentTarget
     const query = new FormData(form).get('dashboard-search')?.toString().trim().toLocaleLowerCase('vi') ?? ''
     if (!query) return
-    if (/phòng lab|phong lab|\blab\b|giải phẫu|giai phau|anatomy|3d/.test(query)) onNavigate('lab')
-    else if (/ai|emin|hỏi|trợ lý/.test(query)) onNavigate('tutor')
-    else if (/lịch|buổi|ngày/.test(query)) onNavigate('schedule')
-    else if (/tài liệu|ghi chú|file/.test(query)) onNavigate('library')
-    else if (/cộng đồng|bạn bè|người dùng/.test(query)) onNavigate('community')
-    else if (/tin nhắn|trò chuyện/.test(query)) onNavigate('messages')
-    else if (/gpa|tiến độ|kế hoạch|thống kê/.test(query)) onNavigate('progress')
-    else if (/luyện đề|ôn tập|trắc nghiệm|đề thi/.test(query)) onNavigate('practice')
-    else if (/tự chọn|định hướng nghề/.test(query)) onNavigate('electives')
-    else onNavigate('courses')
+    if (/phòng lab|phong lab|\blab\b|giải phẫu|giai phau|anatomy|3d/.test(query)) onNavigate(appPaths.labs)
+    else if (/ai|emin|hỏi|trợ lý/.test(query)) onNavigate(appPaths.assistant)
+    else if (/lịch|buổi|ngày/.test(query)) onNavigate(appPaths.schedule)
+    else if (/tài liệu|ghi chú|file/.test(query)) onNavigate(appPaths.notes)
+    else if (/cộng đồng|bạn bè|người dùng/.test(query)) onNavigate(appPaths.community)
+    else if (/tin nhắn|trò chuyện/.test(query)) onNavigate(appPaths.messages)
+    else if (/gpa|tiến độ|kế hoạch|thống kê/.test(query)) onNavigate(appPaths.planner)
+    else if (/luyện đề|ôn tập|trắc nghiệm|đề thi/.test(query)) onNavigate(appPaths.exams)
+    else if (/tự chọn|định hướng nghề/.test(query)) onNavigate(appPaths.electives)
+    else onNavigate(appPaths.courses)
     form.reset()
   }
 
   return <header className="topbar">
-    <div className="mobile-brand"><Brand onHome={() => onNavigate('overview')} /></div>
+    <div className="mobile-brand"><Brand onHome={() => onNavigate(appPaths.dashboard)} /></div>
     <div className="topbar-copy"><p className="today">{formatVietnameseDate()}</p><h1>Chào {firstName}, sẵn sàng học chưa?</h1></div>
     <form className="command-search" role="search" onSubmit={search}>
       <Search size={17} aria-hidden="true" />
@@ -392,43 +375,25 @@ function Header({ profile, onNavigate, theme, onToggleTheme, unreadMessages, fri
       <kbd>Ctrl K</kbd>
     </form>
     <div className="topbar-actions">
-      <button className="topbar-icon-button" type="button" onClick={() => onNavigate(unreadMessages ? 'messages' : 'community')} aria-label={notificationCount ? `${notificationCount} thông báo mới` : 'Thông báo'}>
+      <button className="topbar-icon-button" type="button" onClick={() => onNavigate(unreadMessages ? appPaths.messages : appPaths.community)} aria-label={notificationCount ? `${notificationCount} thông báo mới` : 'Thông báo'}>
         <Bell size={18} />{notificationCount > 0 && <span className="notification-count">{notificationCount > 9 ? '9+' : notificationCount}</span>}
       </button>
       <button className="topbar-icon-button theme-toggle" type="button" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Chuyển sang giao diện ban ngày' : 'Chuyển sang giao diện không gian'} aria-pressed={theme === 'light'}>
         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
-      <button className="header-avatar" type="button" onClick={() => onNavigate('profile')} aria-label="Mở hồ sơ cá nhân">
+      <button className="header-avatar" type="button" onClick={() => onNavigate(appPaths.profile)} aria-label="Mở hồ sơ cá nhân">
         {profile?.avatar_url ? <img src={profile.avatar_url} alt="" /> : <UserRound size={18} />}
       </button>
     </div>
-    <details className="mobile-more"><summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary><div><button onClick={() => mobileNavigate('schedule')}><CalendarDays size={17} />Lịch học</button><button onClick={() => mobileNavigate('library')}><Files size={17} />Ghi chú</button><button onClick={() => mobileNavigate('progress')}><BarChart3 size={17} />Kế hoạch</button><button onClick={() => mobileNavigate('practice')}><ClipboardList size={17} />Luyện đề</button><button onClick={() => mobileNavigate('lab')}><FlaskConical size={17} />Phòng Lab</button><button onClick={() => mobileNavigate('electives')}><Compass size={17} />Môn tự chọn</button><button onClick={() => mobileNavigate('community')}><Users size={17} />Cộng đồng</button><button onClick={() => mobileNavigate('messages')}><MessageCircle size={17} />Tin nhắn</button><button onClick={() => mobileNavigate('settings')}><Settings size={17} />Cài đặt</button></div></details>
+    <details className="mobile-more">
+      <summary aria-label="Mở thêm điều hướng"><Menu className="menu-open" size={21} /><X className="menu-close" size={21} /></summary>
+      <div>{mobileMoreItems.map(({ path, label, icon: Icon }) => <button key={path} type="button" aria-current={isActivePath(pathname, path) ? 'page' : undefined} onClick={() => mobileNavigate(path)}><Icon size={17} aria-hidden="true" />{label}</button>)}</div>
+    </details>
   </header>
 }
 
-function ProgressView({ study }: { study: StudyState }) {
-  const done = study.tasks.filter((task) => task.completed).length
-  const completion = study.tasks.length ? Math.round((done / study.tasks.length) * 100) : 0
-  const grouped = study.tasks.reduce<Map<string, { total: number; done: number }>>((result, task) => {
-    const current = result.get(task.course) ?? { total: 0, done: 0 }
-    current.total += 1
-    if (task.completed) current.done += 1
-    result.set(task.course, current)
-    return result
-  }, new Map())
-  const courseProgress = [...grouped].map(([name, value]) => ({ name, value: Math.round(value.done / value.total * 100) }))
-  return <section className="page-view" aria-labelledby="progress-title">
-    <div className="page-intro"><span className="folio">Nhật ký tuần</span><h2 id="progress-title">Tiến bộ đang bén rễ</h2><p>Nhìn lại vừa đủ để biết bước tiếp theo nên đặt ở đâu.</p></div>
-    <div className="progress-spread">
-      <div className="progress-summary"><span className="big-number">{completion}%</span><h3>Kế hoạch của bạn</h3><p>{done} trong {study.tasks.length} việc đã hoàn thành. Dữ liệu được lưu trên thiết bị này.</p></div>
-      <div className="course-progress">
-        {courseProgress.length === 0 && <p className="progress-empty">Chưa có dữ liệu môn học. Hãy thêm lịch và hoàn thành buổi học đầu tiên.</p>}
-        {courseProgress.map((course) => <div className="progress-line" key={course.name}><div><span>{course.name}</span><strong>{course.value}%</strong></div><span className="progress-track"><i style={{ width: `${course.value}%` }} /></span></div>)}
-      </div>
-    </div>
-    <div className="insight-note"><Sparkles size={20} /><div><h3>Dữ liệu thuộc về bạn</h3><p>Nexamin chỉ tạo nhận xét sau khi bạn có đủ hoạt động học tập thực tế.</p></div></div>
-  </section>
+function App() {
+  return <BrowserRouter><AppContent /></BrowserRouter>
 }
-
 
 export default App

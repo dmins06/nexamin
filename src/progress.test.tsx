@@ -5,7 +5,7 @@ import App from './App'
 
 describe('Study progress', () => {
   afterEach(cleanup)
-  beforeEach(() => window.localStorage.clear())
+  beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/') })
 
   it('calculates progress only from user-scheduled tasks', async () => {
     const user = userEvent.setup()
@@ -19,10 +19,10 @@ describe('Study progress', () => {
       ],
     }))
     render(<App />)
-    const progressButton = screen.getByRole('button', { name: 'Xem tiến độ' })
+    const progressButton = await screen.findByRole('button', { name: 'Xem tiến độ' }, { timeout: 5000 })
     if (!progressButton) throw new Error('Progress navigation is missing')
     await user.click(progressButton)
-    expect(screen.getByText('50%', { selector: '.big-number' })).toBeInTheDocument()
+    expect(await screen.findByText('50%', { selector: '.big-number' })).toBeInTheDocument()
     expect(screen.getByText('Giải tích')).toBeInTheDocument()
     expect(screen.getByText('1 trong 2 việc đã hoàn thành. Dữ liệu được lưu trên thiết bị này.')).toBeInTheDocument()
   })

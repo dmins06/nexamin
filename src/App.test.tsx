@@ -6,6 +6,7 @@ import App from './App'
 describe('Nexamin dashboard', () => {
   afterEach(cleanup)
   beforeEach(() => {
+    window.history.replaceState({}, '', '/')
     window.localStorage.clear()
     sessionStorage.setItem('studyhub.auth.v1', JSON.stringify({
       access_token: 'test-access-token',
@@ -37,8 +38,8 @@ describe('Nexamin dashboard', () => {
     }))
     render(<App />)
 
-    expect(screen.getByRole('heading', { name: 'Tiến độ học tập' })).toBeInTheDocument()
-    const task = screen.getByRole('button', {
+    expect(await screen.findByRole('heading', { name: 'Tiến độ học tập' }, { timeout: 5000 })).toBeInTheDocument()
+    const task = await screen.findByRole('button', {
       name: 'Hoàn thành: Ôn bài do người dùng tạo',
     })
     await user.click(task)
@@ -49,15 +50,15 @@ describe('Nexamin dashboard', () => {
   it('opens the schedule from the dashboard', async () => {
     const user = userEvent.setup()
     render(<App />)
-    await user.click(screen.getByRole('button', { name: 'Xem lịch' }))
-    expect(screen.getByRole('heading', { name: 'Lịch học của bạn' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Xem lịch' }))
+    expect(await screen.findByRole('heading', { name: 'Lịch học của bạn' })).toBeInTheDocument()
   })
 
   it('keeps sign out reachable from Settings', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getAllByRole('button', { name: 'Cài đặt' })[0]!)
-    expect(screen.getByRole('button', { name: 'Đăng xuất' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Đăng xuất' })).toBeInTheDocument()
   })
 
   it('creates a course and immediately shows it in the course list', async () => {
@@ -153,7 +154,7 @@ describe('Nexamin dashboard', () => {
     render(<App />)
 
     await user.click(screen.getAllByRole("button", { name: /Môn học/i })[0]!)
-    await user.click(screen.getByRole('button', { name: /Thêm môn học/i }))
+    await user.click(await screen.findByRole('button', { name: /Thêm môn học/i }))
     await user.type(screen.getByLabelText('Tên môn'), 'Lập trình nâng cao')
     await user.type(screen.getByLabelText('Mã môn'), 'LTPNC')
     await user.click(screen.getByRole('button', { name: /Lưu môn học/i }))
