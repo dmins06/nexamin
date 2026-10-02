@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync, statSync } from 'node:fs'
 import { basename, join } from 'node:path'
+import { decodeViews, readGlb } from './anatomy-glb-codec.mjs'
 
 const base = 'public/models/anatomy'
 const manifest = JSON.parse(readFileSync(join(base, 'manifest.json'), 'utf8'))
@@ -23,9 +24,12 @@ for (const model of manifest.models) {
   assert.equal(gltf.images?.length ?? 0, 0, `${filename}: no unexpected images`)
   assert.equal(gltf.animations?.length ?? 0, 0, `${filename}: no animations`)
   assert.equal(gltf.cameras?.length ?? 0, 0, `${filename}: no cameras`)
-  assert.equal(gltf.extensionsRequired?.length ?? 0, 0, `${filename}: no remote decoder required`)
-  assert.equal(gltf.buffers.length, 1, `${filename}: embedded binary only`)
+  assert.deepEqual(gltf.extensionsRequired, ['EXT_meshopt_compression'], `${filename}: bundled decoder only`)
+  assert.equal(gltf.buffers.length, 2, `${filename}: embedded binary plus required placeholder`)
+  assert.equal(gltf.buffers[1].uri, undefined)
+  assert.equal(gltf.buffers[1].extensions?.EXT_meshopt_compression?.fallback, true)
   assert.equal(gltf.buffers[0].uri, undefined, `${filename}: no external buffers`)
+  const views = await decodeViews(readGlb(buffer))
   const names = []
   let vertices = 0, triangles = 0
   for (const node of gltf.nodes) {
@@ -44,6 +48,10 @@ for (const model of manifest.models) {
       assert.ok(index.count % 3 === 0)
       assert.ok(index.min[0] >= 0 && index.max[0] < position.count, `${filename}/${node.name}: index within vertex range`)
       assert.ok(position.min.every(Number.isFinite) && position.max.every(Number.isFinite), `${filename}/${node.name}: finite bounds`)
+      const points = views[position.bufferView], indices = views[index.bufferView]
+      assert.equal(position.componentType, 5126); assert.equal(index.componentType, 5125)
+      for (let n = 0; n < position.count * 3; n++) assert.ok(Number.isFinite(points.readFloatLE((position.byteOffset ?? 0) + n * 4)), `${filename}: nonfinite vertex`)
+      for (let n = 0; n < index.count; n++) assert.ok(indices.readUInt32LE((index.byteOffset ?? 0) + n * 4) < position.count, `${filename}: actual index outside range`)
       vertices += position.count
       triangles += index.count / 3
     }

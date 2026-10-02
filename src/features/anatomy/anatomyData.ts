@@ -1,4 +1,5 @@
 import type { AnatomyLayer, AnatomyStructure, AnatomySystem } from './anatomyTypes'
+import expansion from './anatomyExpansion.json'
 
 export const anatomySystems: ReadonlyArray<{ id: AnatomySystem; label: string }> = [
   { id: 'skeletal', label: 'Hệ xương' }, { id: 'muscular', label: 'Hệ cơ' },
@@ -68,6 +69,15 @@ export const anatomyStructures: AnatomyStructure[] = [
   structure({ id: 'spleen', nameVi: 'Lách', nameEn: 'Spleen', latinName: 'Lien', system: 'lymphatic', layer: 'organs', location: 'Phần trên bên trái ổ bụng.', function: 'Lọc máu và tham gia đáp ứng miễn dịch.', relatedStructures: ['stomach'], demo: { shape: 'sphere', position: [0.57, 0.1, -0.08], scale: [0.1, 0.19, 0.11] } }),
   structure({ id: 'skin', nameVi: 'Da', nameEn: 'Skin', latinName: 'Cutis', system: 'integumentary', layer: 'skin', location: 'Bề mặt cơ thể.', function: 'Tạo hàng rào bảo vệ, tham gia cảm giác và điều hòa thân nhiệt.', relatedStructures: ['biceps'], demo: { shape: 'box', position: [0, 0.17, 0], scale: [1.35, 2.55, 0.95] } }),
 ]
+
+// The same catalog drives the asset builder. Expanded structures have real
+// source meshes only: do not fabricate demo geometry for missing anatomy.
+for (const entry of expansion) {
+  const system = anatomySystems.find((item) => item.id === entry.group)?.id
+  if (!system || anatomyStructures.some((item) => item.id === entry.id)) throw new Error(`Invalid anatomy catalog entry: ${entry.id}`)
+  const layer: AnatomyLayer = system === 'skeletal' ? 'skeleton' : system === 'muscular' ? 'muscles' : system === 'nervous' ? 'nerves' : 'organs'
+  anatomyStructures.push(structure({ id: entry.id, nameVi: entry.nameVi, nameEn: entry.nameEn, system, layer, location: entry.location, function: entry.function, relatedStructures: [] }))
+}
 
 export const anatomyById = new Map(anatomyStructures.map((item) => [item.id, item]))
 export const anatomyObjectMap = new Map(anatomyStructures.flatMap((item) => item.modelObjectNames.map((name) => [name.toLowerCase(), item.id] as const)))

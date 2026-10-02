@@ -25,7 +25,7 @@ export function AnatomyInfoPanel({ selected, visible, isolated, learning, canSte
       <div className="anatomy-info-actions"><button aria-label={visible ? 'Ẩn bộ phận' : 'Hiện bộ phận'} onClick={onVisibility}>{visible ? <EyeOff size={16} /> : <Eye size={16} />}{visible ? 'Ẩn' : 'Hiện'}</button><button aria-pressed={isolated} onClick={onIsolate}><Focus size={16} />{isolated ? 'Bỏ tách riêng' : 'Tách riêng'}</button></div>
       {!visible && <p className="anatomy-muted">Bộ phận đang ẩn khỏi mô hình.</p>}
       <dl><dt>Hệ cơ quan</dt><dd>{systemLabel(selected.system)}</dd><dt>Vị trí</dt><dd>{selected.location}</dd><dt>Chức năng cơ bản</dt><dd>{selected.function}</dd></dl>
-      <h3>Cấu trúc liên quan</h3><div className="anatomy-related">{selected.relatedStructures.map((id) => { const item = anatomyById.get(id); return item ? <button key={id} onClick={() => onSelect(id)}>{item.nameVi}</button> : null })}</div>
+      {!!selected.relatedStructures.length && <><h3>Cấu trúc liên quan</h3><div className="anatomy-related">{selected.relatedStructures.map((id) => { const item = anatomyById.get(id); return item ? <button key={id} onClick={() => onSelect(id)}>{item.nameVi}</button> : null })}</div></>}
       <a className="anatomy-source" href={selected.source} target="_blank" rel="noreferrer">Tham khảo OpenStax (tiếng Anh)</a>
     </>}
     <p className="anatomy-disclaimer">Nội dung hỗ trợ học tập; không dùng để chẩn đoán hoặc điều trị.</p>

@@ -5,7 +5,7 @@ import { Box3, Material, Mesh, MeshStandardMaterial, PerspectiveCamera, Plane, S
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { anatomyById, anatomyStructures, anatomySystems } from './anatomyData'
 import { isStructureVisible } from './anatomyState'
-import { clippingPlanes, resolveStructureId, structureColor } from './anatomyScene'
+import { anatomyFocusDistance, clippingPlanes, resolveStructureId, structureColor } from './anatomyScene'
 import { AnatomyLabels, type AnatomyAnchor } from './AnatomyLabels'
 import type { AnatomyModel, AnatomySceneState, AnatomyViewerProps, CameraCommand } from './anatomyTypes'
 
@@ -24,7 +24,7 @@ function CameraRig({ command, focus }: { command: CameraCommand; focus?: Anatomy
     const action = command.action
     destination.current = null
     if (action === 'reset') { camera.position.set(0, 0.1, 6.3); orbit.target.set(0, 0.1, 0) }
-    else if (action.startsWith('zoom-')) camera.position.copy(orbit.target).add(offset.multiplyScalar(action === 'zoom-in' ? 0.8 : 1.25).clampLength(1.1, 14))
+    else if (action.startsWith('zoom-')) camera.position.copy(orbit.target).add(offset.multiplyScalar(action === 'zoom-in' ? 0.8 : 1.25).clampLength(0.15, 14))
     else if (action.startsWith('pan-')) {
       const vector = new Vector3().setFromMatrixColumn(camera.matrix, action === 'pan-left' || action === 'pan-right' ? 0 : 1).multiplyScalar(action === 'pan-left' || action === 'pan-down' ? -0.2 : 0.2)
       orbit.target.add(vector); camera.position.add(vector)
@@ -43,8 +43,11 @@ function CameraRig({ command, focus }: { command: CameraCommand; focus?: Anatomy
     const target = new Vector3(...focus.position)
     const direction = camera.position.clone().sub(controls.current.target).normalize()
     const fov = camera instanceof PerspectiveCamera ? camera.fov : 42
-    const distance = Math.min(10, Math.max(1.25, focus.radius / Math.sin((fov * Math.PI) / 360) * 1.45))
-    destination.current = { target, position: target.clone().addScaledVector(direction, distance) }
+    const distance = anatomyFocusDistance(focus.radius, fov, camera instanceof PerspectiveCamera ? camera.aspect : 1)
+    const position = target.clone().addScaledVector(direction, distance)
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      destination.current = null; controls.current.target.copy(target); camera.position.copy(position); controls.current.update()
+    } else destination.current = { target, position }
     invalidate()
   }, [camera, focus, invalidate])
   useFrame(() => {
@@ -55,7 +58,7 @@ function CameraRig({ command, focus }: { command: CameraCommand; focus?: Anatomy
     if (orbit.target.distanceTo(next.target) + camera.position.distanceTo(next.position) < 0.008) destination.current = null
     else invalidate()
   })
-  return <OrbitControls ref={controls} makeDefault enableDamping={false} minDistance={0.5} maxDistance={14} />
+  return <OrbitControls ref={controls} makeDefault enableDamping={false} minDistance={0.15} maxDistance={14} />
 }
 function ContextMonitor({ onLost }: { onLost: () => void }) {
   const { gl } = useThree()
@@ -67,16 +70,16 @@ function choose(event: ThreeEvent<MouseEvent>, id: string, planes: Plane[], onSe
   event.stopPropagation(); onSelect(id)
 }
 function DemoScene({ state, planes, onSelect }: { state: AnatomySceneState; planes: Plane[]; onSelect: AnatomyViewerProps['onSelect'] }) {
-  return <>{anatomyStructures.filter((item) => isStructureVisible(item, state)).map((item) => <mesh key={item.id} name={item.id} position={item.demo.position} rotation={item.demo.rotation} scale={item.demo.scale} onClick={(event) => choose(event, item.id, planes, onSelect)}>
-    {item.demo.shape === 'sphere' ? <sphereGeometry args={[1, 24, 16]} /> : item.demo.shape === 'cylinder' ? <cylinderGeometry args={[1, 1, 1, 16]} /> : <boxGeometry args={[1, 1, 1]} />}
+  return <>{anatomyStructures.flatMap((item) => { const demo = item.demo; if (!demo || !isStructureVisible(item, state)) return []; return <mesh key={item.id} name={item.id} position={demo.position} rotation={demo.rotation} scale={demo.scale} onClick={(event) => choose(event, item.id, planes, onSelect)}>
+    {demo.shape === 'sphere' ? <sphereGeometry args={[1, 24, 16]} /> : demo.shape === 'cylinder' ? <cylinderGeometry args={[1, 1, 1, 16]} /> : <boxGeometry args={[1, 1, 1]} />}
     <meshStandardMaterial color={structureColor(item)} emissive={state.selectedId === item.id ? '#30c7de' : '#000000'} emissiveIntensity={state.selectedId === item.id ? 0.65 : 0} transparent={state.xray} opacity={state.xray && state.selectedId !== item.id ? 0.2 : 1} depthWrite={!state.xray || state.selectedId === item.id} roughness={0.65} wireframe={item.id === 'skin' || item.id === 'skull'} clippingPlanes={planes} />
-  </mesh>)}</>
+  </mesh> })}</>
 }
 interface ModelProps { model: AnatomyModel; state: AnatomySceneState; planes: Plane[]; onSelect: AnatomyViewerProps['onSelect']; onAnchors: (modelId: string, anchors: AnatomyBounds[]) => void }
 function ModelScene({ model, state, planes, onSelect, onAnchors }: ModelProps) {
   // GLTF's immutable geometries and textures stay cached; only the owned scene/materials are disposed.
-  // Uncompressed/self-contained GLBs are the baseline. Compression decoders can be self-hosted later.
-  const gltf = useGLTF(model.url, false)
+  // Drei bundles MeshoptDecoder locally: no Draco CDN or third-party runtime.
+  const gltf = useGLTF(model.url, false, true)
   const { scene, entries, ownedMaterials } = useMemo(() => {
     const scene = clone(gltf.scene)
     scene.scale.multiplyScalar(model.scale); scene.position.add(new Vector3(...model.position))
@@ -136,9 +139,26 @@ function Scene({ state, models, command, onSelect, onContextLost, onModelFailure
   const planes = useMemo(() => clippingPlanes(state.section), [state.section])
   const [modelAnchors, setModelAnchors] = useState<Record<string, AnatomyBounds[]>>({})
   const [onAnchors] = useState(() => (id: string, anchors: AnatomyBounds[]) => setModelAnchors((previous) => ({ ...previous, [id]: anchors })))
-  const anchors = models.length ? Object.values(modelAnchors).flat() : anatomyStructures.map((item) => ({ id: item.id, position: item.demo.position }))
+  const anchors = models.length ? Object.values(modelAnchors).flat() : anatomyStructures.flatMap((item) => item.demo ? [{ id: item.id, position: item.demo.position }] : [])
   const focusId = state.selectedId ?? state.isolatedId
-  const focus = focusId ? Object.values(modelAnchors).flat().find((anchor) => anchor.id === focusId) : undefined
+  const visibleBoundsKey = Object.values(modelAnchors).flat().filter((anchor) => { const item = anatomyById.get(anchor.id); return item && isStructureVisible(item, state) }).map((anchor) => anchor.id).sort().join('|')
+  const overview = useMemo(() => {
+    // Localized systems would be almost invisible at the whole-body camera.
+    // Fit their actual mesh bounds; keep the incumbent overview for other groups.
+    if (!['endocrine', 'reproductive', 'urinary', 'lymphatic'].includes(state.system)) return undefined
+    const visibleIds = new Set(visibleBoundsKey.split('|'))
+    const visible = Object.values(modelAnchors).flat().filter((anchor) => visibleIds.has(anchor.id))
+    if (!visible.length) return undefined
+    const box = new Box3()
+    for (const anchor of visible) {
+      const center = new Vector3(...anchor.position), extent = new Vector3().setScalar(anchor.radius)
+      box.expandByPoint(center.clone().sub(extent)); box.expandByPoint(center.add(extent))
+    }
+    const center = box.getCenter(new Vector3())
+    const position: AnatomyBounds['position'] = [center.x, center.y, center.z]
+    return { id: state.system, position, radius: box.getSize(new Vector3()).length() / 2 }
+  }, [modelAnchors, state.system, visibleBoundsKey])
+  const focus = focusId ? Object.values(modelAnchors).flat().find((anchor) => anchor.id === focusId) : overview
   const visibleAnchors = Array.from(new Map(anchors.filter((anchor) => { const item = anatomyById.get(anchor.id); return item && isStructureVisible(item, state) }).map((anchor) => [anchor.id, anchor])).values())
   const activeModels = models.filter((model) => model.structureIds.some((id) => { const item = anatomyById.get(id); return item && isStructureVisible(item, state) }))
   return <><ambientLight intensity={1.15} /><directionalLight position={[4, 5, 6]} intensity={2.2} /><directionalLight position={[-3, 1, -3]} intensity={1} color="#84c9e3" /><CameraRig command={command} focus={focus} /><ContextMonitor onLost={onContextLost} />

@@ -1,5 +1,5 @@
-import { anatomyById, anatomyLayers, anatomySystems } from './anatomyData'
-import type { AnatomyPreferences, AnatomySceneState, AnatomyStructure } from './anatomyTypes'
+import { anatomyById, anatomyLayers, anatomyStructures, anatomySystems } from './anatomyData'
+import type { AnatomyPreferences, AnatomySceneState, AnatomyStructure, AnatomySystem } from './anatomyTypes'
 
 const KEY = 'nexamin.anatomy.v1'
 export function defaultAnatomyPreferences(): AnatomyPreferences {
@@ -35,4 +35,13 @@ export function revealStructure(state: AnatomySceneState, id: string): AnatomySc
     systems: { ...state.systems, [item.system]: true }, layers: { ...state.layers, [item.layer]: true },
     vessels: item.vessel ? { ...state.vessels, [item.vessel.type]: true, [item.vessel.group]: true } : state.vessels,
   }
+}
+export function revealSystem(state: AnatomySceneState, system: AnatomySystem | 'all', availableIds?: ReadonlySet<string>): AnatomySceneState {
+  const layers = { ...state.layers }, vessels = { ...state.vessels }
+  if (system !== 'all') for (const item of anatomyStructures) {
+    if (item.system !== system || (availableIds && !availableIds.has(item.id))) continue
+    layers[item.layer] = true
+    if (item.vessel) { vessels[item.vessel.type] = true; vessels[item.vessel.group] = true }
+  }
+  return { ...state, system, selectedId: null, hiddenIds: [], isolatedId: null, section: { axis: 'off', position: 0 }, layers, vessels, systems: system === 'all' ? state.systems : { ...state.systems, [system]: true } }
 }

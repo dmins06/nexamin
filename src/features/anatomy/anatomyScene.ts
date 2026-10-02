@@ -23,3 +23,8 @@ export function structureColor(item: AnatomyStructure) {
   const colors = { skin: '#c89577', muscles: '#b96158', skeleton: '#e9dec4', organs: '#d89a7d', vessels: '#ee4c55', nerves: '#e9c46a' }
   return colors[item.layer]
 }
+export function anatomyFocusDistance(radius: number, fov: number, aspect: number) {
+  const vertical = fov * Math.PI / 360
+  const horizontal = Math.atan(Math.tan(vertical) * aspect)
+  return Math.min(10, Math.max(0.15, radius / Math.sin(Math.min(vertical, horizontal)) * 1.45))
+}

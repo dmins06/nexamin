@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { BufferGeometry, Float32BufferAttribute, Mesh, MeshStandardMaterial, Scene, Uint32BufferAttribute } from 'three'
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js'
 import { MeshoptSimplifier } from 'meshoptimizer'
+import { compressGlb } from './anatomy-glb-codec.mjs'
 
 const sourceDir = '.cache/anatomy-source'
 const outputDir = 'public/models/anatomy'
@@ -33,7 +34,6 @@ const entries = [
   { id: 'humerus', group: 'skeletal', fma: ['partof:FMA23130', 'partof:FMA23131'] },
   { id: 'forearm-bones', group: 'skeletal', fma: ['partof:FMA23464', 'partof:FMA23465', 'partof:FMA23467', 'partof:FMA23468'] },
   { id: 'lower-leg-bones', group: 'skeletal', fma: ['partof:FMA24477', 'partof:FMA24478', 'partof:FMA24480', 'partof:FMA24481'] },
-  { id: 'other-bones', group: 'skeletal', fma: ['partof:FMA23876'] },
   { id: 'biceps', group: 'muscular', fma: ['isa:FMA37684', 'isa:FMA37685', 'isa:FMA37686', 'isa:FMA37687'] },
   { id: 'deltoid', group: 'muscular', fma: ['isa:FMA34680', 'isa:FMA34681', 'isa:FMA34682', 'isa:FMA34683', 'isa:FMA34684', 'isa:FMA34685'] },
   { id: 'pectoralis-major', group: 'muscular', fma: ['isa:FMA34690', 'isa:FMA34691', 'isa:FMA79979', 'isa:FMA79980', 'isa:FMA45874', 'isa:FMA45875'] },
@@ -50,7 +50,11 @@ const entries = [
   { id: 'spleen', group: 'lymphatic', fma: ['isa:FMA7196'] },
   { id: 'skin', group: 'integumentary', fma: ['partof:FMA7163'] },
 ]
-const colors = { skeletal: '#e6dfca', muscular: '#bc6259', circulatory: '#d17367', respiratory: '#c7879b', digestive: '#c99464', nervous: '#e4c773', urinary: '#ab83b1', lymphatic: '#aa8a61', integumentary: '#c89477' }
+const expansion = JSON.parse(readFileSync('src/features/anatomy/anatomyExpansion.json', 'utf8'))
+// Claim specifically selectable concepts before the broad residual skeleton.
+// Other additions also precede their parent meshes to avoid hidden duplicates.
+entries.unshift(...expansion.map(({ id, group, fma }) => ({ id, group, fma })))
+const colors = { skeletal: '#e6dfca', muscular: '#bc6259', circulatory: '#d17367', respiratory: '#c7879b', digestive: '#c99464', nervous: '#e4c773', urinary: '#ab83b1', lymphatic: '#aa8a61', integumentary: '#c89477', endocrine: '#c99d64', reproductive: '#b887a6' }
 const simplification = { skull: 0.6, spine: 0.6, 'rib-cage': 0.5, 'other-bones': 0.65, liver: 0.6, 'large-intestine': 0.7, skin: 0.55 }
 const metadata = Object.fromEntries(Object.entries(trees).map(([tree, config]) => {
   const names = new Map(readFileSync(config.names, 'utf8').trim().split(/\r?\n/).slice(1).map((line) => { const [id, , name] = line.split('\t'); return [id, name] }))
@@ -72,7 +76,7 @@ function matchingPartOf(regex) {
 const handSources = matchingPartOf(/(?:phalanx of .* (?:finger|thumb)|metacarpal bone|skeleton of .* hand proper|(?:right|left) (?:scaphoid|lunate|triquetral|pisiform|trapezium|trapezoid|capitate|hamate))/i)
 const footSources = matchingPartOf(/(?:phalanx of .* toe|metatarsal bone|(?:right|left) (?:talus|calcaneus|cuboid bone|.*cuneiform bone)|navicular bone of .* foot)/i)
 if (handSources.length < 50 || footSources.length < 50) throw new Error('Incomplete hand/foot source concepts')
-entries.splice(entries.findIndex((entry) => entry.id === 'other-bones'), 0,
+entries.splice(entries.findIndex((entry) => entry.id === 'biceps'), 0,
   { id: 'hand-bones', group: 'skeletal', fma: handSources },
   { id: 'foot-bones', group: 'skeletal', fma: footSources })
 const seen = new Set()
@@ -197,10 +201,11 @@ for (const group of [...new Set(selected.map((entry) => entry.group))]) {
     console.log(`${group}/${entry.id}: ${sourceIds.length} OBJ parts, ${count} vertices, ${faces} triangles`)
   }
   const glb = await new GLTFExporter().parseAsync(scene, { binary: true, onlyVisible: true })
+  const compressed = await compressGlb(Buffer.from(glb))
   const filename = `${group}.glb`
-  writeFileSync(join(outputDir, filename), Buffer.from(glb))
+  writeFileSync(join(outputDir, filename), compressed)
   models.push({ id: group, url: `/models/anatomy/${filename}`, license: 'CC BY 4.0', attribution: 'BodyParts3D, © The Database Center for Life Science', scale: 1, position: [0, 0, 0], structureIds: ids })
-  report.push({ group, filename, bytes: glb.byteLength, sourceBytes, vertices, triangles, originalTriangles, structureIds: ids })
+  report.push({ group, filename, bytes: compressed.byteLength, uncompressedBytes: glb.byteLength, sourceBytes, vertices, triangles, originalTriangles, structureIds: ids })
 }
 writeFileSync(join(outputDir, 'manifest.json'), JSON.stringify({ version: 1, models }, null, 2) + '\n')
 writeFileSync(join(sourceDir, 'build-report.json'), JSON.stringify(report, null, 2) + '\n')

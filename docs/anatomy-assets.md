@@ -16,22 +16,24 @@ Các GLB là bản chuyển đổi/cắt gọn của dữ liệu trên; hãy gi�
 
 ## Tệp đã dùng
 
-Mỗi hàng dưới đây là một bản phái sinh từ **cùng nguồn, tác giả và hai thông báo giấy phép ở trên**. “OBJ chọn lọc” là tổng kích thước văn bản OBJ *không nén* thực sự đưa vào nhóm; không phải dung lượng toàn bộ ZIP tải về. Dung lượng GLB lấy từ `scripts/inspect-anatomy-assets.mjs` (MiB, làm tròn). Bảng tên thật và mã FMA/FJ được giữ trong `node.extras` của từng mesh, có thể kiểm tra bằng script. Mỗi mesh có tên ID ổn định trùng `anatomyData.ts`; không gộp các cấu trúc với nhau.
+Mỗi hàng dưới đây là một bản phái sinh từ **cùng nguồn, tác giả và hai thông báo giấy phép ở trên**. Dung lượng GLB lấy từ `scripts/inspect-anatomy-assets.mjs` (MiB, làm tròn); số tam giác tính sau bước giản lược OBJ có sẵn và không đổi khi nén. Mã FMA/FJ được giữ trong `node.extras` của từng mesh, có thể kiểm tra bằng script. Mỗi mesh có tên ID ổn định trùng `anatomyData.ts`; các cấu trúc chọn được không bị gộp khi nén. Cặp trái/phải hoặc nhóm xương là một mục học tập theo danh mục.
 
-| Tệp GLB | Nhóm/cấu trúc chọn lọc | OBJ chọn lọc | GLB | Tam giác trước → sau |
-| --- | --- | ---: | ---: | ---: |
-| `circulatory.glb` | Tim, động/tĩnh mạch chủ, phổi, cảnh, quay, đùi, vành | 15.13 | 6.02 | 244,570 → 244,570 |
-| `skeletal.glb` | Hộp sọ, cột sống, lồng ngực, chậu, xương tay/chân và bàn tay/chân | 52.01 | 13.00 | 793,334 → 500,338 |
-| `muscular.glb` | Cơ nhị đầu, delta, ngực lớn, tứ đầu đùi | 5.16 | 2.02 | 72,224 → 72,224 |
-| `respiratory.glb` | Hai phổi | 3.56 | 1.45 | 57,042 → 57,042 |
-| `digestive.glb` | Gan, dạ dày, ruột non, ruột già | 18.24 | 4.92 | 268,486 → 181,580 |
-| `nervous.glb` | Não, tủy sống | 20.70 | 7.80 | 322,990 → 322,990 |
-| `urinary.glb` | Hai thận, bàng quang | 0.32 | 0.13 | 5,518 → 5,518 |
-| `lymphatic.glb` | Lách | 0.08 | 0.03 | 1,330 → 1,330 |
-| `integumentary.glb` | Da | 13.80 | 2.58 | 203,382 → 111,858 |
-| **Tổng** | **37 cấu trúc tương tác** | **128.98** | **37.94** | — |
+| Tệp GLB | Nhóm/cấu trúc chọn lọc | GLB (MiB) | Tam giác xuất |
+| --- | --- | ---: | ---: |
+| `skeletal.glb` | 14: thêm xương đòn, vai, bánh chè, móng; tách nhóm “Các xương khác” | 5.94 | 403,088 |
+| `muscular.glb` | 27: cơ cổ, vai, thân, hoành, mông, đùi, cẳng chân | 9.47 | 651,998 |
+| `respiratory.glb` | 5: phổi, khí quản, phế quản chính, sụn mũi, sụn giáp | 1.03 | 75,346 |
+| `digestive.glb` | 9: thêm thực quản, tụy, túi mật, lưỡi, tuyến dưới hàm | 3.12 | 202,496 |
+| `urinary.glb` | 4: thận, niệu quản, bàng quang, niệu đạo nam | 0.14 | 9,944 |
+| `reproductive.glb` | 5: tinh hoàn, mào tinh, ống dẫn tinh, túi tinh, tuyến tiền liệt | 0.07 | 3,962 |
+| `endocrine.glb` | 2: tuyến yên, tuyến thượng thận | 0.10 | 7,454 |
+| `lymphatic.glb` | 2: lách, tuyến ức | 0.05 | 3,410 |
+| `nervous.glb` | 4: não, tủy sống, nhãn cầu, dây thần kinh thị giác | 6.89 | 529,224 |
+| `circulatory.glb` | 11: tim, động/tĩnh mạch chủ, phổi, cảnh, quay, đùi, vành | 3.26 | 244,570 |
+| `integumentary.glb` | 1: da | 1.47 | 111,858 |
+| **Tổng** | **84 cấu trúc tương tác / 11 hệ** | **31.55** | — |
 
-Hai ZIP nguồn nén có kích thước xấp xỉ 62 MiB (`partof`) và 137 MiB (`isa`); không tải chúng về trình duyệt. Các GLB được chia theo hệ và chỉ tải khi hệ đó hiển thị. Mặc định chỉ tải hệ xương (~13.00 MiB); toàn bộ 37.94 MiB không tải trước khi người dùng mở Phòng Lab/Anatomy. Mô hình vẫn tương đối nặng trên mạng di động; không nên bật “Toàn bộ cơ thể” khi đường truyền yếu.
+Hai ZIP nguồn nén có kích thước xấp xỉ 62 MiB (`partof`) và 137 MiB (`isa`); không tải chúng về trình duyệt. Các GLB được chia theo hệ và chỉ tải khi hệ đó hiển thị. Mặc định chỉ tải hệ xương (~5.94 MiB, trước đây ~13.00 MiB). Tổng tăng từ 37 lên 84 cấu trúc nhưng giảm từ 37.94 xuống 31.55 MiB (33,078,620 byte). Bản mở rộng trước nén là 56.72 MiB; codec lossless giảm khoảng 44.4% dung lượng bản đó. Đây là số byte tệp, không phải benchmark FPS, độ trễ hay tốc độ tải trên điện thoại. “Toàn bộ cơ thể” vẫn nặng về bộ nhớ/GPU; ưu tiên mở từng hệ trên mạng yếu.
 
 ## Chuyển đổi và kiểm tra
 
@@ -39,4 +41,6 @@ Hai ZIP nguồn nén có kích thước xấp xỉ 62 MiB (`partof`) và 137 MiB
 
 Để tái tạo, tải đúng sáu tệp `isa_BP3D_4.0_obj_99.zip`, `partof_BP3D_4.0_obj_99.zip`, `isa_parts_list_e.txt`, `partof_parts_list_e.txt`, `isa_element_parts.txt`, `partof_element_parts.txt` từ [thư mục phát hành chính thức](https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/) vào `.cache/anatomy-source/`, giữ nguyên tên tệp, rồi chạy `node scripts/build-anatomy-assets.mjs`. `--inspect` chỉ liệt kê các FMA/FJ đã chọn và không ghi GLB. Bộ chọn xương bàn tay/chân dựa trên tên tiếng Anh trong bảng FMA chính thức; mọi ID nguồn được ghi trong GLB để kiểm chứng.
 
-Chạy `node scripts/inspect-anatomy-assets.mjs` để xác nhận header/chunk GLB, mesh names, lineage, số đỉnh/tam giác, index hợp lệ, giới hạn hữu hạn, không có ảnh/animation/camera/extension bắt buộc và không có buffer ngoài. Chạy tiếp `npm test`, `npm run build` và browser QA thực tế. Mô hình BodyParts3D là atlas cơ thể nam trưởng thành tham chiếu, **không phải dữ liệu y khoa cá nhân, không đầy đủ mọi cấu trúc và không dùng cho chẩn đoán**. Hệ sinh dục và nội tiết chưa có mô hình được tích hợp, được đánh dấu “Đang bổ sung”; hệ khác cũng chỉ có các cấu trúc liệt kê ở trên.
+GLB dùng extension bắt buộc `EXT_meshopt_compression`, giải nén bằng MeshoptDecoder đã đóng gói trong Drei, không gọi CDN. `scripts/anatomy-glb-codec.mjs` so sánh từng byte thuộc đỉnh, normal và index trước/sau giải nén trước khi ghi tệp. Nén này không thay đổi hình học đã xuất; bước giản lược chọn lọc OBJ có sẵn vẫn được ghi riêng, không gọi toàn bộ pipeline là lossless. Bản mở rộng giữ toàn bộ 898 ID nguồn duy nhất từ các GLB trước đó; tách nhóm xương còn lại và thêm mục học tập không đồng nghĩa với atlas đầy đủ mọi cấu trúc.
+
+Chạy `node --test scripts/check-anatomy-glb-codec.mjs` và `node scripts/inspect-anatomy-assets.mjs` để xác nhận header/chunk, mesh names, lineage, số đỉnh/tam giác, từng index/đỉnh sau giải nén, ngân sách giải nén 64 MiB/tệp, chỉ extension được cho phép, không ảnh/animation/camera/buffer ngoài. Chạy tiếp `npm test`, `npm run build` và `node scripts/qa-anatomy-expanded.cjs` với frontend đang chạy (hoặc `QA_BASE_URL=http://127.0.0.1:4173` khi preview). Mô hình BodyParts3D là atlas cơ thể nam trưởng thành tham chiếu, **không phải dữ liệu y khoa cá nhân, không đầy đủ mọi cấu trúc và không dùng cho chẩn đoán**. Cả 11 hệ có cấu trúc chọn lọc, nhưng không có giải phẫu nữ, tuyến giáp hoặc mọi cơ, dây thần kinh, hạch bạch huyết. Sụn giáp là bộ phận thanh quản, không được gắn nhãn tuyến giáp. Cặp trái/phải và một số nhóm xương vẫn được chọn chung.

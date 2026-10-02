@@ -17,7 +17,7 @@ export interface AnatomyStructure {
   modelObjectNames: string[]
   source: string
   vessel?: { type: 'arteries' | 'veins'; group: 'coronary' | 'major' }
-  demo: { shape: 'sphere' | 'box' | 'cylinder'; position: VectorTuple; scale: VectorTuple; rotation?: VectorTuple }
+  demo?: { shape: 'sphere' | 'box' | 'cylinder'; position: VectorTuple; scale: VectorTuple; rotation?: VectorTuple }
 }
 
 export interface AnatomyPreferences {

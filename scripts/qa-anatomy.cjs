@@ -32,7 +32,7 @@ async function prepare(browser, width, height, light = false, setup, onHub) {
   await page.getByRole('heading', { name: 'Phòng Lab', exact: true }).waitFor()
   assert.equal(await page.evaluate(() => performance.getEntriesByType('resource').filter((entry) => /AnatomyView|AnatomyWorkspace|react-three|models\/anatomy/.test(entry.name)).length), 0, 'Hub must not load anatomy assets')
   if (onHub) await onHub(page)
-  await page.getByRole('button', { name: 'Khám phá', exact: true }).click()
+  await page.getByRole('article', { name: /Giải phẫu/ }).getByRole('button', { name: 'Khám phá', exact: true }).click()
   try { await page.locator('.anatomy-canvas-wrap canvas').waitFor({ timeout: 30000 }) } catch (error) { console.log(await page.locator('.anatomy-feature').innerText()); throw error }
   await page.waitForFunction(() => document.querySelector('.anatomy-canvas-wrap canvas')?.width > 0)
   if (light && await page.getByLabel('Chuyển sang giao diện ban ngày').count()) await page.getByLabel('Chuyển sang giao diện ban ngày').click()

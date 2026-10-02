@@ -3,11 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Object3D, Vector3 } from 'three'
 import AnatomyWorkspace from './AnatomyWorkspace'
-import { anatomyById, anatomyStructures } from './anatomyData'
-import { defaultAnatomyPreferences, isStructureVisible, loadAnatomyPreferences, revealStructure } from './anatomyState'
+import { anatomyById, anatomyStructures, anatomySystems } from './anatomyData'
+import expansion from './anatomyExpansion.json'
+import shippedManifest from '../../../public/models/anatomy/manifest.json'
+import { defaultAnatomyPreferences, isStructureVisible, loadAnatomyPreferences, revealStructure, revealSystem } from './anatomyState'
 import { parseAnatomyManifest } from './anatomyModels'
 import { createAnatomyQuiz } from './anatomyQuiz'
-import { clippingPlanes, resolveStructureId, structureColor } from './anatomyScene'
+import { anatomyFocusDistance, clippingPlanes, resolveStructureId, structureColor } from './anatomyScene'
 import type { AnatomySceneState, AnatomyViewerProps } from './anatomyTypes'
 
 const mock = vi.hoisted(() => ({ fail: false }))
@@ -84,8 +86,49 @@ describe('Anatomy workspace without a GPU', () => {
     await user.click(screen.getByRole('button', { name: 'Thử lại' }))
     await waitFor(() => expect(screen.getByTestId('mock-viewer')).toBeInTheDocument())
   })
+  it('reveals the required layer when choosing a system after hiding organs', async () => {
+    const user = userEvent.setup(); render(<AnatomyWorkspace />); await screen.findByTestId('mock-viewer')
+    const sidebar = within(screen.getByRole('complementary', { name: 'Hệ và lớp giải phẫu' }))
+    await user.click(sidebar.getByText('Lớp giải phẫu'))
+    await user.click(sidebar.getByRole('checkbox', { name: 'Nội tạng' }))
+    expect(loadAnatomyPreferences().layers.organs).toBe(false)
+    await user.click(sidebar.getByRole('button', { name: 'Hệ tiết niệu' }))
+    expect(loadAnatomyPreferences().layers.organs).toBe(true)
+    expect(screen.queryByText('Tất cả bộ phận đang ẩn.')).not.toBeInTheDocument()
+  })
 })
 describe('Anatomy data, mapping and visibility', () => {
+  it('focuses small glands and accounts for a narrow mobile camera', () => {
+    expect(anatomyFocusDistance(0.03, 42, 1)).toBe(0.15)
+    expect(anatomyFocusDistance(0.3, 42, 0.7)).toBeGreaterThan(anatomyFocusDistance(0.3, 42, 1.3))
+    expect(anatomyFocusDistance(5, 42, 0.5)).toBe(10)
+  })
+  it('ships real expanded structures in all eleven systems without fake demo geometry', () => {
+    const manifest = parseAnatomyManifest(shippedManifest)
+    expect(manifest.models).toHaveLength(11)
+    const ids = new Set(manifest.models.flatMap((model) => model.structureIds))
+    expect(ids.size).toBe(84)
+    for (const system of anatomySystems) expect(manifest.models.some((model) => model.id === system.id && model.structureIds.length > 0)).toBe(true)
+    for (const entry of expansion) {
+      expect(ids.has(entry.id)).toBe(true)
+      expect(entry.fma.every((id) => /^(partof|isa):FMA\d+$/.test(id))).toBe(true)
+      expect(anatomyById.get(entry.id)?.demo).toBeUndefined()
+      expect(anatomyById.get(entry.id)?.system).toBe(entry.group)
+    }
+    expect(ids.has('uterus')).toBe(false)
+    expect(ids.has('thyroid')).toBe(false)
+    expect(anatomyById.get('thyroid-cartilage')?.system).toBe('respiratory')
+  })
+  it('reveals only the chosen system layers and vessel filters, preserving unrelated preferences', () => {
+    const current = state(); current.layers.organs = false; current.layers.skin = false
+    current.layers.vessels = false; current.vessels.arteries = false; current.vessels.major = false
+    const urinary = revealSystem(current, 'urinary')
+    expect(urinary.layers.organs).toBe(true); expect(urinary.layers.skin).toBe(false)
+    expect(urinary.layers.vessels).toBe(false)
+    const vascular = revealSystem(current, 'circulatory')
+    expect(vascular.layers.vessels).toBe(true); expect(vascular.vessels.arteries).toBe(true); expect(vascular.vessels.major).toBe(true)
+    expect(revealSystem(current, 'all').layers).toEqual(current.layers)
+  })
   it('validates metadata references and alias uniqueness', () => {
     const aliases = anatomyStructures.flatMap((item) => item.modelObjectNames.map((name) => name.toLowerCase()))
     // Duplicate aliases inside one entity are harmless; an alias must never map to different entities.

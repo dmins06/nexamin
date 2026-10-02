@@ -5,7 +5,7 @@ import { AnatomyInfoPanel } from './AnatomyInfoPanel'
 import { AnatomyToolbar } from './AnatomyToolbar'
 import { AnatomyErrorBoundary, AnatomyFailure } from './AnatomyErrorBoundary'
 import { anatomyById, anatomyStructures, quickSystems, systemLabel } from './anatomyData'
-import { defaultAnatomyPreferences, isStructureVisible, loadAnatomyPreferences, revealStructure, saveAnatomyPreferences } from './anatomyState'
+import { defaultAnatomyPreferences, isStructureVisible, loadAnatomyPreferences, revealStructure, revealSystem, saveAnatomyPreferences } from './anatomyState'
 import { loadAnatomyManifest } from './anatomyModels'
 import { createAnatomyQuiz } from './anatomyQuiz'
 import type { AnatomyLearningPrompt, AnatomyManifest, AnatomySceneState, AnatomySystem, CameraAction, CameraCommand } from './anatomyTypes'
@@ -37,7 +37,7 @@ export default function AnatomyWorkspace() {
     loadAnatomyManifest(controller.signal).then(setManifest).catch(() => { if (!controller.signal.aborted) setFailed(true) })
     return () => controller.abort()
   }, [attempt])
-  const availableIds = useMemo(() => manifest?.models.length ? new Set(manifest.models.flatMap((model) => model.structureIds)) : undefined, [manifest])
+  const availableIds = useMemo(() => manifest?.models.length ? new Set(manifest.models.flatMap((model) => model.structureIds)) : manifest ? new Set(anatomyStructures.filter((item) => item.demo).map((item) => item.id)) : undefined, [manifest])
   useEffect(() => {
     if (!availableIds || state.system === 'all' || anatomyStructures.some((item) => item.system === state.system && availableIds.has(item.id))) return
     const firstAvailable = anatomyStructures.find((item) => availableIds.has(item.id))
@@ -67,7 +67,8 @@ export default function AnatomyWorkspace() {
   function chooseSystem(system: AnatomySystem | 'all') {
     if (system !== 'all' && availableIds && !anatomyStructures.some((item) => item.system === system && availableIds.has(item.id))) return
     if (quiz) exitQuiz()
-    setState((previous) => ({ ...previous, system, selectedId: null, hiddenIds: [], isolatedId: null, section: { axis: 'off', position: 0 }, layers: { ...previous.layers, ...(system === 'integumentary' ? { skin: true } : {}) }, systems: system === 'all' ? previous.systems : { ...previous.systems, [system]: true } }))
+    setState((previous) => revealSystem(previous, system, availableIds))
+    setSearch(''); camera('reset')
   }
   function camera(action: CameraAction) { setCommand((previous) => ({ action, sequence: previous.sequence + 1 })) }
   function onKeyboard(event: KeyboardEvent<HTMLDivElement>) {
@@ -95,7 +96,7 @@ export default function AnatomyWorkspace() {
   }
   const sidebar = <AnatomySidebar state={state} search={search} onSearch={setSearch} onState={(update) => { if (quiz) exitQuiz(); setState(update) }} onSystem={chooseSystem} onSelect={selectFromList} availableIds={availableIds} />
   return <section className="anatomy-feature" aria-labelledby="anatomy-title">
-    <header className="anatomy-heading"><div><h1 id="anatomy-title">Giải phẫu 3D</h1><p>Xoay, tách lớp và tìm hiểu từng bộ phận.</p></div><div className="anatomy-heading-actions"><button className="anatomy-filter-button" onClick={() => drawer.current?.showModal()}><SlidersHorizontal size={17} />Hệ & lớp</button><button aria-pressed={learning} onClick={() => { if (quiz) exitQuiz(); setLearning((value) => !value) }}>Học bộ phận</button><button aria-pressed={!!quiz} disabled={!manifest || !createAnatomyQuiz(availableIds, 0)} onClick={() => quiz ? exitQuiz() : startQuiz()}>Tự kiểm tra</button></div></header>
+    <header className="anatomy-heading"><div><h1 id="anatomy-title">Giải phẫu 3D</h1><p>{manifest?.models.length ? `Atlas nam trưởng thành · ${availableIds?.size} cấu trúc thuộc ${manifest.models.length} hệ.` : 'Xoay, tách lớp và tìm hiểu từng bộ phận.'}</p></div><div className="anatomy-heading-actions"><button className="anatomy-filter-button" onClick={() => drawer.current?.showModal()}><SlidersHorizontal size={17} />Hệ & lớp</button><button aria-pressed={learning} onClick={() => { if (quiz) exitQuiz(); setLearning((value) => !value) }}>Học bộ phận</button><button aria-pressed={!!quiz} disabled={!manifest || !createAnatomyQuiz(availableIds, 0)} onClick={() => quiz ? exitQuiz() : startQuiz()}>Tự kiểm tra</button></div></header>
     <div className="anatomy-workspace">
       <aside className="anatomy-sidebar" aria-label="Hệ và lớp giải phẫu">{sidebar}</aside>
       <div ref={viewerRoot} className={`anatomy-viewer-panel${expanded ? ' is-expanded' : ''}`} tabIndex={0} aria-label="Vùng mô hình 3D" aria-describedby="anatomy-camera-help" onKeyDown={onKeyboard}>
@@ -114,7 +115,7 @@ export default function AnatomyWorkspace() {
       </div>
       <details ref={sheet} className="anatomy-info" open><summary>{quiz ? 'Tự kiểm tra' : `Thông tin bộ phận${selected ? ` · ${selected.nameVi}` : ''}`}</summary><AnatomyInfoPanel selected={selected} visible={!!selected && isStructureVisible(selected, state)} isolated={state.isolatedId === selected?.id} learning={learning} canStep={!!visibleItems.length} quiz={quiz} onQuizAnswer={(id) => setQuiz((previous) => previous ? { ...previous, answerId: id } : previous)} onQuizNext={nextQuiz} onQuizExit={exitQuiz} onSelect={selectFromList} onVisibility={() => selected && setState((p) => isStructureVisible(selected, p) ? { ...p, hiddenIds: [...p.hiddenIds, selected.id] } : revealStructure(p, selected.id))} onIsolate={() => selected && setState((p) => p.isolatedId === selected.id ? { ...p, isolatedId: null } : { ...revealStructure(p, selected.id), isolatedId: selected.id })} onStep={step} /></details>
     </div>
-    {!!manifest?.models.length && <details className="anatomy-attributions"><summary>Nguồn mô hình 3D và giấy phép</summary><p>BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International. Mô hình đã được chọn lọc, giản lược, chuyển sang GLB và tô màu. Các tệp OBJ gốc còn ghi CC BY-SA 2.1 Japan; thông báo này được giữ trong tài liệu nguồn của Nexamin.</p><a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html" target="_blank" rel="noreferrer">Dữ liệu gốc</a> · <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">Giấy phép hiện hành</a></details>}
+    {!!manifest?.models.length && <><p className="anatomy-coverage-note">Atlas học tập chọn lọc, chưa có giải phẫu nữ và tuyến giáp. Không thay thế atlas chuyên ngành hoặc dùng để chẩn đoán. Mỗi hệ được tải khi mở; “Toàn bộ cơ thể” cần nhiều bộ nhớ hơn.</p><details className="anatomy-attributions"><summary>Nguồn mô hình 3D và giấy phép</summary><p>BodyParts3D, © The Database Center for Life Science licensed under CC Attribution 4.0 International. Mô hình đã được chọn lọc, giản lược, chuyển sang GLB, nén không mất dữ liệu và tô màu. Các tệp OBJ gốc còn ghi CC BY-SA 2.1 Japan; thông báo này được giữ trong tài liệu nguồn của Nexamin.</p><a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/download.html" target="_blank" rel="noreferrer">Dữ liệu gốc</a> · <a href="https://dbarchive.biosciencedbc.jp/en/bodyparts3d/lic.html" target="_blank" rel="noreferrer">Giấy phép hiện hành</a></details></>}
     <dialog ref={drawer} className="anatomy-drawer" aria-labelledby="anatomy-drawer-title"><header><h2 id="anatomy-drawer-title">Hệ & lớp giải phẫu</h2><button aria-label="Đóng bộ lọc" onClick={() => drawer.current?.close()}><X size={20} /></button></header>{sidebar}</dialog>
   </section>
 }
