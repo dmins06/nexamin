@@ -1,4 +1,4 @@
-# CNTT Lab — Phase 1
+# CNTT Lab — Phases 1–3
 
 ## Completed / prepared
 
@@ -6,7 +6,9 @@
 - Code Lab: Python/C/C++/Java/JavaScript, CodeMirror 6, per-exercise/language drafts, stdin/stdout/stderr, elapsed compile/run time, Stop, reset confirmation, public tests and optional question draft for Emin AI.
 - Six starter exercises: Hello World, sum, prime, Fibonacci, Binary Search, Bubble Sort. Hello/sum include working examples; the other four intentionally have TODO templates for the student. Tests are educational, public and local, not tamper-proof grading.
 - Algorithm Lab: Bubble/Selection/Insertion/Merge/Quick Sort, Linear/Binary Search, BFS/DFS/Dijkstra; data editing, trace snapshots, play/pause, previous/next/restart, three speeds, synchronized pseudocode, comparisons/swaps/visited nodes and explained complexity.
-- Six remaining labs have independent domain contracts and truthful roadmap routes. CPU, network, OS, SQL, ML and security demonstrations are **not implemented**. Array is visualized in sort/search, queue in BFS and stack in DFS; linked lists/BST/heaps/hash tables are future work.
+- Phase 2: sequential CPU fetch/decode/execute with registers, RAM/cache; five OS schedulers with metrics, dynamic RAM allocation and single-instance deadlock; actual browser SQLite CRUD/JOIN/aggregation, persisted practice snapshots, JOIN matching and actual query plans/schema.
+- Phase 3: editable educational topology/packet trace and routing between two directly connected subnets; five small actual ML models including full-batch dense-network backpropagation; local Web Crypto SHA-256/PBKDF2/AES-GCM and demo policy/secure-coding lessons.
+- All eight modules are launchable betas, not full production engineering tools. Array is visualized in sort/search, queue in BFS and stack in DFS; linked lists/BST/heaps/hash tables remain future work. See [Phase 2/3 implementation report](it-lab-phase2-3.md) for precise capabilities and limits.
 - No Anatomy implementation, authentication, production database or Gemini configuration was changed.
 
 ## Routes
@@ -17,7 +19,7 @@
 
 ## Module layout
 
-`src/features/labs/it/` contains typed registry/card/hub/layout, six future domain folders, and independent `code/` / `algorithms/` implementations. Shared controls and AI handoff are in `shared/`. The layout contains per-route error recovery; root authentication still protects these routes.
+`src/features/labs/it/` contains typed registry/card/hub/layout and eight independent implementations. Pure CPU/OS/network/ML/SQL engines are separate from React components. Shared playback, versioned preference adapter, controls and AI handoff are in `shared/`. The layout contains per-route error recovery; root authentication still protects these routes.
 
 Hub metadata imports neither CodeMirror, runners, Three.js nor algorithm engines. `CodeLab` is about 248 KB gzip including the editor and language support; that chunk only loads on its own route. Runtime assets load only after Run/Test. Algorithm Lab is about 8 KB gzip. These sizes are build observations, not budgets guaranteed for later changes.
 
@@ -49,6 +51,8 @@ To add an algorithm: extend `AlgorithmId`, definition/pseudocode/complexity and 
 
 Drafts use `nexamin.it.code.v1`, simulation choices `nexamin.it.algorithms.v1`; malformed/unknown versions recover safely. Stored source is plaintext on this device: do not place API keys or passwords in exercise code. Runtime files and program filesystem state are not saved between executions. Test results are invalidated on exercise/language change and each new run.
 
+New simulations use `nexamin.it.<lab>.v1` versioned string preferences. SQL practice DB uses `nexamin.it.database.snapshot.v1` (version 1, base64 SQLite bytes, max 512 KiB). It survives refresh on this device; confirmed reset clears only that practice DB. A fresh Worker executes a copy per run; only successful batches replace the saved snapshot. Failure/timeout/Stop preserve the previous snapshot. Manual transactions are rejected to prevent unfinished writes appearing saved. Browser quota/private mode falls back to memory with a visible notice. Security persists only the selected lesson, never its input, salt/hash, key or ciphertext.
+
 Hỏi Emin AI places a bounded question into the existing `studyhub.ai.draft.v1` session adapter and navigates to `/assistant`. The existing tutor still needs an authenticated account, selected course, configured Gemini backend and its normal quota. The lab works without AI; asking is optional, and the draft may include source/input/output the student deliberately shares.
 
 Java's interpreter/JIT/class-library implementation is old, slower and heavier than native Java, especially on low-memory phones. Limits protect server resources by avoiding server execution; browser overhead/Java object heap are **not** a hard OS RAM quota. A hostile memory-heavy program may still crash its local tab. No hidden tests, package managers, multiple-file projects, network programs, full IDE debugging or arbitrary-code tracing are claimed.
@@ -61,4 +65,6 @@ Java's interpreter/JIT/class-library implementation is old, slower and heavier t
 - `node scripts/qa-routing.cjs`: existing routes, refresh, browser history, mobile navigation, protected guest deep links and Anatomy regression.
 - `npm audit --omit=dev`: production npm packages. Vendored JVM/class library require a separate isolation review; npm audit is not a certification of their safety.
 
-Next: Phase 2 CPU instruction-cycle model, OS scheduling with calculation tests, and SQLite-WASM in a separate browser worker. Keep SQL away from the Nexamin API/database. Then add Phase 3 isolated network/ML/security teaching models.
+`node scripts/qa-it-phases.cjs` verifies actual SQLite persistence/reset/query plans, all six new workspaces, browser crypto, models and topology errors. Local-only resource/output probes are skipped with `QA_SMOKE_ONLY=1`; `QA_CAPTURE_ONLY=1` creates 24 desktop/mobile dark/light captures. Auth/profile are fixture-only; simulations, WASM and Web Crypto are real.
+
+Next: implement deeper teaching concepts (paging/replacement, interactive ERD/B-tree, routing tables and ML hold-out evaluation) independently, without turning production infrastructure into an executor.

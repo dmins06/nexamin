@@ -47,13 +47,11 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   <MemoryRouter>{children}</MemoryRouter>
 )
 describe('IT teaching workspaces', () => {
-  it('renders 8 real registry entries, only two launchable betas', () => {
+  it('renders eight launchable teaching workspaces', () => {
     render(<ITLabHub />, { wrapper })
     expect(screen.getAllByRole('article')).toHaveLength(8)
-    expect(screen.getAllByRole('link', { name: 'Mở lab' })).toHaveLength(2)
-    expect(screen.getAllByRole('link', { name: 'Xem lộ trình' })).toHaveLength(
-      6,
-    )
+    expect(screen.getAllByRole('link', { name: 'Mở lab' })).toHaveLength(8)
+    expect(screen.queryByRole('link', { name: 'Xem lộ trình' })).not.toBeInTheDocument()
     expect(
       screen.getByRole('heading', { name: 'CNTT Lab' }),
     ).toBeInTheDocument()

@@ -18,7 +18,12 @@ const ITLabLayout = lazy(() => import('../features/labs/it/ITLabLayout').then(m 
 const ITLabHub = lazy(() => import('../features/labs/it/ITLabHub').then(m => ({default:m.ITLabHub})))
 const CodeLab = lazy(() => import('../features/labs/it/code/CodeLab').then(m => ({default:m.CodeLab})))
 const AlgorithmLab = lazy(() => import('../features/labs/it/algorithms/AlgorithmLab').then(m => ({default:m.AlgorithmLab})))
-const ITLabPlanned = lazy(() => import('../features/labs/it/ITLabPlanned').then(m => ({default:m.ITLabPlanned})))
+const ComputerLab = lazy(() => import('../features/labs/it/computer/ComputerLab').then(m => ({default:m.ComputerLab})))
+const OSLab = lazy(() => import('../features/labs/it/os/OSLab').then(m => ({default:m.OSLab})))
+const DatabaseLab = lazy(() => import('../features/labs/it/database/DatabaseLab').then(m => ({default:m.DatabaseLab})))
+const NetworkLab = lazy(() => import('../features/labs/it/network/NetworkLab').then(m => ({default:m.NetworkLab})))
+const MLLab = lazy(() => import('../features/labs/it/ai/MLLab').then(m => ({default:m.MLLab})))
+const SecurityLab = lazy(() => import('../features/labs/it/security/SecurityLab').then(m => ({default:m.SecurityLab})))
 const ElectivesView = lazy(() => import('../features/electives/ElectivesView').then((module) => ({ default: module.ElectivesView })))
 const CommunityFeedView = lazy(() => import('../features/social/SocialViews').then((module) => ({ default: module.CommunityFeedView })))
 const MessagesView = lazy(() => import('../features/social/SocialViews').then((module) => ({ default: module.MessagesView })))
@@ -65,7 +70,12 @@ export function AppRoutes({ study, profile, profileLoading, onNavigate, onToggle
           <Route index element={<ITLabHub />} />
           <Route path="code" element={<CodeLab />} />
           <Route path="algorithms" element={<AlgorithmLab />} />
-          {['computer','network','os','database','ai','security'].map(path => <Route key={path} path={path} element={<ITLabPlanned />} />)}
+          <Route path="computer" element={<ComputerLab />} />
+          <Route path="os" element={<OSLab />} />
+          <Route path="database" element={<DatabaseLab />} />
+          <Route path="network" element={<NetworkLab />} />
+          <Route path="ai" element={<MLLab />} />
+          <Route path="security" element={<SecurityLab />} />
         </Route>
       </Route>
       <Route path={appPaths.electives} element={<ElectivesView onOpenProfile={() => onNavigate(appPaths.profile)} />} />

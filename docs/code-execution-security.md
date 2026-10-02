@@ -46,7 +46,13 @@ There is no execution API to abuse or charge a shared compute quota. UI permits 
 
 Tests are deliberately all public/local. A client cannot protect hidden expected outputs or provide trusted grading; future server grading needs a separate isolated executor, authenticated quotas, strict CPU/wall/RAM/process/output/FS limits, network disabled and robust teardown. Never substitute `subprocess.run` inside FastAPI or unrestricted JS eval because a remote runner is unavailable.
 
-The database/security labs are roadmap pages only; no SQL reaches any server and no vulnerable demonstration targets Nexamin or third parties. Future SQL must use disposable browser SQLite state; future security lessons accept only sandbox fixtures, not target URLs.
+## Local SQL and security teaching boundaries
+
+SQLite runs only in a dedicated browser Worker, initialized from the trusted pinned sql.js WASM. Student queries are SQL data, never JavaScript, and no SQL-to-JS functions or production connection are exposed. Worker has no DOM/localStorage; it receives only SQL and the bounded local practice snapshot. Its trusted initialization fetches the static WASM, not arbitrary query-controlled URLs. Each run owns a disposable DB copy: success exports the main practice DB, failure/Stop/timeout discards the worker and keeps the previous snapshot. There is no SQL execution endpoint or backend credential. Manual transactions are rejected; the run lifecycle owns persistence. Extra attached SQLite files are ephemeral, not host files.
+
+Limits: SQL 32 KiB; 20 statements; 32 columns; 200 displayed rows/result; combined row output 64 KiB; snapshot 512 KiB; load 20 seconds then computation 3 seconds. Trusted initialization sets SQLite hard heap 64 MiB and max-page-count 128; WASM linear memory is rewritten to a 256 MiB maximum. Student PRAGMA may alter SQLite limits, so the outer Worker timeout/WASM/output/snapshot bounds remain authoritative. Host browser/JS overhead is not covered by that linear-memory cap; this is not a hard OS memory quota or proof against browser/WASM implementation vulnerabilities.
+
+Security lessons run only bounded trusted routines on ephemeral demo strings: Web Crypto SHA-256, PBKDF2-SHA256 with fresh salt, non-exportable AES-GCM key/fresh IV and actual authenticated decryption failure. The UI takes no target URLs, executes no injection payload, calls no auth-management API and persists no crypto inputs/results/key. Role/ownership dropdowns only exercise a pure mock policy, never actual privileges. No student JavaScript is evaluated; SQL/HTML examples render as React text. There is intentionally no AI-share button in this lab.
 
 ## Validation scope / residual findings
 

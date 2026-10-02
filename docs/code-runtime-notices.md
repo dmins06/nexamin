@@ -14,6 +14,7 @@ Runtime binaries are fetched at build time by `scripts/prepare-code-runtimes.mjs
 | Java class library | Doppio JCL v3.2, OpenJDK 8 | GPL-2.0 with Classpath exception, OPENJDK-LICENSE.txt, ASSEMBLY_EXCEPTION, THIRD_PARTY_README |
 | fflate | 0.8.3 | MIT, FFLATE-LICENSE |
 | CodeMirror / Lezer | npm lockfile versions | MIT, upstream package notices |
+| sql.js / SQLite WASM | sql.js 1.14.2, pinned npm integrity | MIT wrapper, SQLJS-LICENSE; SQLite public domain |
 
 Copyright holders and full terms are in the accompanying license texts, not superseded by this summary. The MIT license of Doppio's scripts does not relicense OpenJDK. Nexamin does not claim authorship of these runtimes.
 
@@ -26,5 +27,6 @@ Copyright holders and full terms are in the accompanying license texts, not supe
 - [DoppioJVM source](https://github.com/plasma-umass/doppio), [BrowserFS source](https://github.com/jvilk/BrowserFS/tree/v1.4.3), [Doppio JCL build scripts and modifications](https://github.com/plasma-umass/doppio_jcl). JCL's `Grunttasks.ts` identifies the OpenJDK package inputs, including `openjdk-8_*_8u72-b05-1ubuntu1_i386.deb` and timezone data; this is an old educational runtime, not a current Java security runtime.
 - [OpenJDK 8 upstream source](https://github.com/openjdk/jdk8u) and [Ubuntu OpenJDK 8 source packages](https://launchpad.net/ubuntu/+source/openjdk-8/8u72-b05-1ubuntu1). Preserve the upstream source/build links and GPL/ClassPath notices if redistributing this component; a modified distributor must fulfill its corresponding-source obligations for its exact build.
 - [fflate source](https://github.com/101arrowz/fflate), [CodeMirror](https://github.com/codemirror), [Lezer](https://github.com/lezer-parser).
+- [sql.js v1.14.2 source/build](https://github.com/sql-js/sql.js/tree/v1.14.2), [SQLite sources](https://www.sqlite.org/download.html), [SQLite public-domain declaration](https://www.sqlite.org/copyright.html). Vite bundles the pinned package's WASM as a hashed asset for SQL Worker, not an external runtime CDN. The MIT notice is served alongside the other runtime notices.
 
 Downloaded source/license URLs and SHA-256 checksums are pinned in the lock manifest. `--record-lock` is a maintainer-only update command, never used in production builds. Do not change a checksum just to bypass a failed integrity check.

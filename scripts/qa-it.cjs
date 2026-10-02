@@ -267,20 +267,12 @@ async function main() {
           .isDisabled(),
         true,
       )
-      for (const id of [
-        'computer',
-        'network',
-        'os',
-        'database',
-        'ai',
-        'security',
+      for (const [id, heading] of [
+        ['computer', 'Computer Architecture'], ['network', 'Network Lab'],
+        ['os', 'Operating System'], ['database', 'Database Lab'],
+        ['ai', 'AI / Machine Learning'], ['security', 'Security Lab'],
       ]) {
-        await page.goto(`${base}/labs/it/${id}`)
-        await page
-          .getByText(
-            'Trang này mới có cấu trúc và phạm vi; chưa có mô phỏng hoạt động.',
-          )
-          .waitFor()
+        await open(page, `/labs/it/${id}`, heading)
       }
       assert.deepEqual(errors, [])
       await page.close()

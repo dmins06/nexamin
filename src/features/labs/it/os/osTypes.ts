@@ -1,4 +1,4 @@
-/** Phase 2 contracts; scheduling/memory calculations are not implemented yet. */
+/** Bounded single-CPU scheduling contracts used by the teaching engine. */
 export interface LabProcess {id:string;arrival:number;burst:number;priority:number}
 export type SchedulingPolicy='fcfs'|'sjf'|'srtf'|'round-robin'|'priority'
 export interface ScheduleSlice {processId:string|null;start:number;end:number}

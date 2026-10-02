@@ -48,6 +48,7 @@ await writeFile(
 )
 await writeFile(dest+'FFLATE-LICENSE',await readFile(`${root}node_modules/fflate/LICENSE`))
 await writeFile(dest+'RUNNO-LICENSE',await readFile(`${root}node_modules/@runno/wasi/LICENSE`))
+await writeFile(dest+'SQLJS-LICENSE',await readFile(`${root}node_modules/sql.js/LICENSE`))
 await writeFile(dest+'SOURCES.md',await readFile(`${root}docs/code-runtime-notices.md`))
 function extract(tgz, name) {
   const tar = gunzipSync(tgz)

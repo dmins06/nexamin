@@ -23,7 +23,12 @@ vi.mock('../features/admin/AdminView', () => ({ AdminView: () => <h2>route-admin
 vi.mock('../features/labs/it/ITLabHub',()=>({ITLabHub:()=> <h2>route-it</h2>}))
 vi.mock('../features/labs/it/code/CodeLab',()=>({CodeLab:()=> <h2>route-code</h2>}))
 vi.mock('../features/labs/it/algorithms/AlgorithmLab',()=>({AlgorithmLab:()=> <h2>route-algorithms</h2>}))
-vi.mock('../features/labs/it/ITLabPlanned',()=>({ITLabPlanned:()=> <h2>route-planned</h2>}))
+vi.mock('../features/labs/it/computer/ComputerLab',()=>({ComputerLab:()=> <h2>route-computer</h2>}))
+vi.mock('../features/labs/it/network/NetworkLab',()=>({NetworkLab:()=> <h2>route-network</h2>}))
+vi.mock('../features/labs/it/os/OSLab',()=>({OSLab:()=> <h2>route-os</h2>}))
+vi.mock('../features/labs/it/database/DatabaseLab',()=>({DatabaseLab:()=> <h2>route-database</h2>}))
+vi.mock('../features/labs/it/ai/MLLab',()=>({MLLab:()=> <h2>route-ai</h2>}))
+vi.mock('../features/labs/it/security/SecurityLab',()=>({SecurityLab:()=> <h2>route-security</h2>}))
 
 const profile: UserProfile = { id: 'student', email: 'student@example.edu', full_name: 'Sinh viên', avatar_url: null, university: null, major: null, student_year: 1, role: 'admin' }
 const study = { version: 2 as const, tasks: [], focusSeconds: 1500, completedSessions: 0 }
@@ -59,7 +64,7 @@ describe('URL route map', () => {
     ['/community', 'route-community'], ['/messages', 'route-messages'], ['/profile', 'route-profile'],
     ['/settings', 'route-settings'], ['/electives', 'route-electives'], ['/admin', 'route-admin'],
     ['/labs/it','route-it'],['/labs/it/code','route-code'],['/labs/it/algorithms','route-algorithms'],
-    ...['computer','network','os','database','ai','security'].map(id=>[`/labs/it/${id}`,'route-planned']),
+    ...['computer','network','os','database','ai','security'].map(id=>[`/labs/it/${id}`,`route-${id}`]),
   ])('renders direct path %s', async (path, heading) => {
     renderRoute(path)
     expect(await screen.findByRole('heading', { name: heading })).toBeInTheDocument()
