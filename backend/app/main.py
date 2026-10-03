@@ -1,3 +1,4 @@
+import re
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -48,12 +49,23 @@ app.add_middleware(
 )
 register_exception_handlers(app)
 app.include_router(api_router, prefix=settings.api_v1_prefix)
-if settings.storage_provider == "blob":
-    @app.get("/media/{path:path}", include_in_schema=False)
-    async def blob_media(path: str) -> RedirectResponse:
+
+
+@app.get("/media/{path:path}", include_in_schema=False)
+async def public_media(path: str) -> Response:
+    # Only avatar/post images are public. Course/message paths, including old
+    # links, must never go through a StaticFiles mount or public Blob redirect.
+    identity = r"[0-9a-f-]{36}"
+    if re.fullmatch(
+        rf"(?:users/{identity}/avatar|social/{identity})/{identity}\.(?:png|jpe?g|webp|gif)", path,
+    ) is None:
+        return Response(status_code=404, headers={"Cache-Control": "private, no-store"})
+    if settings.storage_provider == "blob":
         return RedirectResponse(await blob_storage.public_url(path))
-else:
-    app.mount("/media", StaticFiles(directory=MEDIA_ROOT, check_dir=False), name="media")
+    target = (MEDIA_ROOT / path).resolve()
+    if MEDIA_ROOT.resolve() not in target.parents or not target.is_file():
+        return Response(status_code=404)
+    return FileResponse(target)
 
 FRONTEND_ROOT = Path(__file__).resolve().parents[1] / "frontend"
 if settings.app_env == "development" and not FRONTEND_ROOT.is_dir():
@@ -70,6 +82,9 @@ async def request_context(request: Request, call_next: object) -> Response:
     started = time.perf_counter()
     response = await call_next(request)  # type: ignore[operator]
     response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["X-Frame-Options"] = "DENY"
     logger.info(
         "request",
         request_id=request_id,

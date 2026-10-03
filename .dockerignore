@@ -1,4 +1,7 @@
 .git
+.cache
+.vercel
+migration-data
 .env
 .env.*
 !.env.example

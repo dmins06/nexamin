@@ -11,6 +11,7 @@ from app.core.exceptions import AppError
 from app.core.storage import StorageBackend
 from app.models import Activity, ActivityType, Document
 from app.repositories.scoped import owned_course, owned_document
+from app.services.private_files import ensure_private_writes_enabled
 
 ALLOWED_TYPES = {
     ".pdf": ("application/pdf", b"%PDF"),
@@ -28,6 +29,7 @@ class DocumentService:
 
     async def upload(self, course_id: uuid.UUID, file: UploadFile) -> Document:
         await owned_course(self.session, course_id, self.user_id)
+        ensure_private_writes_enabled()
         original = Path(file.filename or "").name
         extension = Path(original).suffix.lower()
         if extension not in ALLOWED_TYPES:
@@ -104,6 +106,7 @@ class DocumentService:
 
     async def delete(self, document_id: uuid.UUID) -> None:
         document = await self.get(document_id)
+        ensure_private_writes_enabled()
         await self.storage.delete(document.storage_key)
         await self.session.delete(document)
         await self.session.commit()

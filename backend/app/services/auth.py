@@ -50,7 +50,10 @@ class AuthService:
         return await self._issue_pair(user)
 
     async def login(self, payload: LoginRequest) -> TokenPair:
-        user = await self.session.scalar(select(User).where(User.email == payload.email.lower()))
+        user = await self.session.scalar(
+            select(User).where(User.email == payload.email.lower()).with_for_update()
+            .execution_options(populate_existing=True)
+        )
         if (
             user is None
             or user.password_hash is None
@@ -62,6 +65,7 @@ class AuthService:
         return await self._issue_pair(user)
 
     async def change_password(self, user: User, payload: PasswordChangeRequest) -> None:
+        user = await self._locked_user(user.id)
         if user.password_hash is None or not verify_password(
             payload.current_password, user.password_hash
         ):
@@ -78,7 +82,16 @@ class AuthService:
         now = datetime.now(UTC)
         token_hash = hash_refresh_token(raw_token)
         stored = await self.session.scalar(
+            select(RefreshToken).where(RefreshToken.token_hash == token_hash)
+        )
+        if stored is None:
+            raise AppError("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401)
+        # Every session mutation locks the user first, then refresh rows. This
+        # serializes refresh/issuance with recovery and avoids inverse lock order.
+        user = await self._locked_user(stored.user_id)
+        stored = await self.session.scalar(
             select(RefreshToken).where(RefreshToken.token_hash == token_hash).with_for_update()
+            .execution_options(populate_existing=True)
         )
         expires_at = stored.expires_at if stored is not None else now
         if expires_at.tzinfo is None:
@@ -92,8 +105,7 @@ class AuthService:
                 )
                 await self.session.commit()
             raise AppError("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired", 401)
-        user = await self.session.get(User, stored.user_id)
-        if user is None or not user.is_active:
+        if not user.is_active:
             raise AppError("INVALID_REFRESH_TOKEN", "Refresh token is invalid", 401)
         raw_next, next_hash = new_refresh_token()
         stored.revoked_at = now
@@ -106,7 +118,7 @@ class AuthService:
                 expires_at=now + timedelta(days=settings.refresh_token_expire_days),
             )
         )
-        access, expires_in = create_access_token(user.id, user.role.value)
+        access, expires_in = create_access_token(user.id, user.role.value, stored.family_id)
         await self.session.commit()
         return TokenPair(access_token=access, refresh_token=raw_next, expires_in=expires_in)
 
@@ -114,20 +126,40 @@ class AuthService:
         stored = await self.session.scalar(
             select(RefreshToken).where(RefreshToken.token_hash == hash_refresh_token(raw_token))
         )
-        if stored is not None and stored.revoked_at is None:
-            stored.revoked_at = datetime.now(UTC)
+        if stored is not None:
+            await self._locked_user(stored.user_id)
+            await self.session.execute(
+                update(RefreshToken).where(
+                    RefreshToken.family_id == stored.family_id,
+                    RefreshToken.user_id == stored.user_id,
+                    RefreshToken.revoked_at.is_(None),
+                ).values(revoked_at=datetime.now(UTC))
+            )
             await self.session.commit()
 
+    async def _locked_user(self, user_id: uuid.UUID) -> User:
+        user = await self.session.scalar(
+            select(User).where(User.id == user_id).with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if user is None:
+            raise AppError("INVALID_REFRESH_TOKEN", "User is missing", 401)
+        return user
+
     async def _issue_pair(self, user: User) -> TokenPair:
+        user = await self._locked_user(user.id)
+        if not user.is_active:
+            raise AppError("ACCOUNT_DISABLED", "Tài khoản đã bị vô hiệu hóa", 403)
         raw_refresh, token_hash = new_refresh_token()
+        family_id = uuid.uuid4()
         self.session.add(
             RefreshToken(
                 user_id=user.id,
                 token_hash=token_hash,
-                family_id=uuid.uuid4(),
+                family_id=family_id,
                 expires_at=datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days),
             )
         )
-        access, expires_in = create_access_token(user.id, user.role.value)
+        access, expires_in = create_access_token(user.id, user.role.value, family_id)
         await self.session.commit()
         return TokenPair(access_token=access, refresh_token=raw_refresh, expires_in=expires_in)

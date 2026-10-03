@@ -8,7 +8,7 @@ RUN groupadd --system app && useradd --system --gid app --create-home app
 WORKDIR /app
 COPY pyproject.toml ./
 COPY app ./app
-RUN pip install --upgrade pip && pip install "."
+RUN python -m pip install --upgrade "pip>=26.2,<27" && python -m pip install "."
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY data ./data

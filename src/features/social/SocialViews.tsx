@@ -11,6 +11,7 @@ import {
   type UserProfile,
   workspaceApi,
 } from '../../lib/workspaceApi'
+import { PrivateAttachment } from './PrivateAttachment'
 
 function initials(name: string) {
   return name.split(/\s+/).slice(-2).map((part) => part[0]).join('').toUpperCase()
@@ -442,7 +443,7 @@ export function MessagesView({ ownId, onMessagesRead }: { ownId: string | undefi
           {selected.friendship_status === 'accepted' && <div className="direct-chat"><div className="message-thread">{messages.length === 0 ? <p className="chat-empty">Chưa có tin nhắn. Hãy bắt đầu bằng một lời chào.</p> : messages.map((message) => {
             const payload = parseMessageContent(message.content)
             return <div className={message.sender_id === ownId ? 'direct-message mine' : 'direct-message'} key={message.id}><p>{payload.text || 'Tệp đính kèm'}</p>{payload.attachment && (
-              <div className="message-attachment"><a href={payload.attachment.url} target="_blank" rel="noreferrer">{payload.attachment.mime_type.startsWith('image/') ? <img src={payload.attachment.url} alt={payload.attachment.name} /> : <span>{payload.attachment.name}</span>}</a></div>
+              <PrivateAttachment messageId={message.id} attachment={payload.attachment} />
             )}<time>{new Date(message.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</time></div>
           })}</div><form onSubmit={send}><input name="content" value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={4000} autoComplete="off" placeholder={`Nhắn cho ${selected.full_name}…`} /><label className="upload-attachment" aria-label="Đính kèm ảnh hoặc tệp"><Paperclip size={16} /><input type="file" accept="image/*,.pdf,.doc,.docx,.txt,.zip" onChange={chooseAttachment} disabled={busy} /></label>{pendingAttachment && <span className="pending-attachment"><span>{pendingAttachment.name}</span><button type="button" aria-label="Bỏ tệp đính kèm" onClick={() => setPendingAttachment(null)}><X size={13} /></button></span>}<button className="primary-action" disabled={busy || (!pendingAttachment && !draft.trim())} aria-label="Gửi tin nhắn"><Send size={17} /></button></form></div>}
         </>}

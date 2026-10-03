@@ -84,7 +84,10 @@ async def users(
 
 @router.post("/users/{user_id}/lock", response_model=AdminUserSummary)
 async def lock_user(user_id: uuid.UUID, session: DBSession, admin: AdminUser) -> AdminUserSummary:
-    target = await session.get(User, user_id)
+    target = await session.scalar(
+        select(User).where(User.id == user_id).with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if target is None:
         raise AppError("USER_NOT_FOUND", "Không tìm thấy tài khoản.", 404)
     if target.id == admin.id or target.role == Role.ADMIN:
@@ -99,7 +102,10 @@ async def lock_user(user_id: uuid.UUID, session: DBSession, admin: AdminUser) ->
 
 @router.post("/users/{user_id}/unlock", response_model=AdminUserSummary)
 async def unlock_user(user_id: uuid.UUID, session: DBSession, admin: AdminUser) -> AdminUserSummary:
-    target = await session.get(User, user_id)
+    target = await session.scalar(
+        select(User).where(User.id == user_id).with_for_update()
+        .execution_options(populate_existing=True)
+    )
     if target is None:
         raise AppError("USER_NOT_FOUND", "Không tìm thấy tài khoản.", 404)
     if target.role == Role.ADMIN:

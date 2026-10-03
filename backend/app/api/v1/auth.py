@@ -17,7 +17,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 class PasswordResetPayload(BaseModel):
-    token: str = Field(min_length=20)
+    token: str = Field(min_length=20, max_length=4096)
     new_password: str = Field(min_length=8, max_length=128)
 
 

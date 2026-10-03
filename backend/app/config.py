@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,7 +27,12 @@ class Settings(BaseSettings):
     s3_bucket: str = "studyhub-documents"
     s3_region: str = "us-east-1"
     storage_provider: Literal["local", "s3", "blob"] = "local"
+    private_blob_read_write_token: str = ""
+    private_file_writes_paused: bool = False
     media_base_url: str = "http://localhost:8010/media"
+    legacy_media_base_urls: list[str] = [
+        "https://studyhubai-bar8.onrender.com/media", "https://nexamin.id.vn/media",
+    ]
     max_upload_bytes: int = 25 * 1024 * 1024
 
     llm_provider: Literal["local", "gemini", "openai-compatible"] = "gemini"
@@ -73,6 +78,15 @@ class Settings(BaseSettings):
         if len(value) < 32:
             raise ValueError("JWT_SECRET must contain at least 32 characters")
         return value
+
+    @model_validator(mode="after")
+    def secure_production_configuration(self) -> "Settings":
+        if self.app_env == "production":
+            if self.jwt_secret == "development-secret-change-before-production-123456":
+                raise ValueError("JWT_SECRET must not use the published development key in production")
+            if "*" in self.cors_origins:
+                raise ValueError("CORS origins must be explicit in production")
+        return self
 
 
 @lru_cache

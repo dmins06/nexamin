@@ -16,6 +16,7 @@ from app.schemas.social import (
     PublicProfile,
     UnreadMessageSummary,
 )
+from app.services.private_files import validate_message_attachment
 
 
 class SocialService:
@@ -232,6 +233,7 @@ class SocialService:
 
     async def send_message(self, other_id: uuid.UUID, content: str) -> DirectMessageResponse:
         await self._require_friend(other_id)
+        validate_message_attachment(content, self.user.id)
         message = DirectMessage(
             sender_id=self.user.id, recipient_id=other_id, content=content.strip()
         )

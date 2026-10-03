@@ -1,3 +1,5 @@
+import asyncio
+import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,14 +14,12 @@ from fastapi import (
     WebSocketDisconnect,
     status,
 )
-from sqlalchemy import select
 
 from app.config import settings
 from app.core.exceptions import AppError
-from app.core.security import decode_access_token
-from app.core.storage import blob_storage, local_storage, storage
+from app.core.storage import blob_storage, local_storage, selected_storage, storage
 from app.database import SessionFactory
-from app.dependencies import CurrentUser, DBSession
+from app.dependencies import CurrentUser, DBSession, get_current_user
 from app.models import User
 from app.realtime import realtime_hub
 from app.schemas.social import (
@@ -34,9 +34,11 @@ from app.schemas.social import (
     UnreadMessageSummary,
 )
 from app.services.feed import FeedService
+from app.services.private_files import ensure_private_writes_enabled, message_file
 from app.services.social import SocialService
 
 router = APIRouter(prefix="/social", tags=["Social"])
+WS_RECHECK_SECONDS = 15
 
 
 @router.get("/people", response_model=list[PublicProfile])
@@ -207,6 +209,7 @@ async def upload_message_attachment(
     file: UploadFile = File(),
 ) -> MessageAttachmentResponse:
     del session
+    ensure_private_writes_enabled()
     filename = Path(file.filename or "attachment").name
     extension = Path(filename).suffix.lower()
     allowed_types = {
@@ -238,16 +241,16 @@ async def upload_message_attachment(
         raise AppError("EMPTY_ATTACHMENT", "Tệp đính kèm đang trống")
 
     key = f"messages/{user.id}/{uuid.uuid4()}{extension}"
-    if settings.storage_provider == "local":
-        await local_storage.upload(key, content, mime_type)
-        url = f"{settings.media_base_url.rstrip('/')}/{key}"
-    elif settings.storage_provider == "blob":
-        await blob_storage.upload(key, content, mime_type)
-        url = f"{settings.media_base_url.rstrip('/')}/{key}"
-    else:
-        await storage.upload(key, content, mime_type)
-        url = f"{settings.s3_endpoint.rstrip('/')}/{settings.s3_bucket}/{key}"
+    await selected_storage().upload(key, content, mime_type)
+    url = f"{settings.media_base_url.rstrip('/')}/{key}"
     return MessageAttachmentResponse(url=url, name=filename, mime_type=mime_type)
+
+
+@router.get("/messages/{message_id}/attachment")
+async def download_message_attachment(
+    message_id: uuid.UUID, session: DBSession, user: CurrentUser,
+) -> Response:
+    return await message_file(session, user.id, message_id)
 
 
 @router.get("/messages/{user_id}", response_model=list[DirectMessageResponse])
@@ -277,28 +280,51 @@ async def send_message(
 
 
 @router.websocket("/ws")
-async def realtime_events(websocket: WebSocket, token: str = Query(min_length=20)) -> None:
+async def realtime_events(websocket: WebSocket) -> None:
+    protocols = websocket.scope.get("subprotocols", [])
+    if (
+        not isinstance(protocols, list) or len(protocols) != 2
+        or not all(isinstance(value, str) for value in protocols)
+        or protocols[0] != "nexamin"
+        or not protocols[1].startswith("bearer.")
+        or not 20 <= len(protocols[1][7:]) <= 4096
+    ):
+        await websocket.close(code=4401)
+        return
+    token = protocols[1][7:]
     try:
-        payload = decode_access_token(token)
-        user_id = uuid.UUID(payload["sub"])
         async with SessionFactory() as session:
-            user = await session.scalar(
-                select(User).where(User.id == user_id, User.is_active.is_(True))
-            )
-            if user is not None:
-                user.last_seen_at = datetime.now(UTC)
-                await session.commit()
-        if user is None:
-            await websocket.close(code=4401)
-            return
+            user = await get_current_user(session, token)
+            user_id = user.id
+            user.last_seen_at = datetime.now(UTC)
+            await session.commit()
     except (AppError, TypeError, ValueError, KeyError):
         await websocket.close(code=4401)
         return
 
-    await realtime_hub.connect(user_id, websocket)
+    async def validate_session() -> bool:
+        async with SessionFactory() as session:
+            try:
+                await get_current_user(session, token)
+            except AppError:
+                return False
+        return True
+
+    await realtime_hub.connect(user_id, websocket, validate_session, subprotocol="nexamin")
     try:
+        next_check = time.monotonic() + WS_RECHECK_SECONDS
         while True:
-            await websocket.receive_text()
+            try:
+                await asyncio.wait_for(
+                    websocket.receive_text(), timeout=max(0.01, next_check - time.monotonic())
+                )
+            except TimeoutError:
+                pass
+            if time.monotonic() >= next_check:
+                if not await validate_session():
+                    await websocket.close(code=4401)
+                    break
+                next_check = time.monotonic() + WS_RECHECK_SECONDS
     except WebSocketDisconnect:
         pass
     finally:

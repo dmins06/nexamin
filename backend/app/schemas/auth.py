@@ -25,7 +25,7 @@ class UserCreate(BaseModel):
 
 
 class PasswordChangeRequest(BaseModel):
-    current_password: str
+    current_password: str = Field(min_length=1, max_length=128)
     new_password: str = Field(min_length=6, max_length=128)
 
     @model_validator(mode="after")
@@ -37,15 +37,15 @@ class PasswordChangeRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=1, max_length=128)
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str = Field(min_length=32)
+    refresh_token: str = Field(min_length=32, max_length=256)
 
 
 class GoogleAuthRequest(BaseModel):
-    authorization_code: str
+    authorization_code: str = Field(min_length=1, max_length=4096)
 
 
 class TokenPair(BaseModel):

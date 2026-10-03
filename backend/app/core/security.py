@@ -21,7 +21,9 @@ def verify_password(password: str, hashed: str) -> bool:
     return password_hash.verify(password, hashed)
 
 
-def create_access_token(user_id: uuid.UUID, role: str) -> tuple[str, int]:
+def create_access_token(
+    user_id: uuid.UUID, role: str, family_id: uuid.UUID | None = None
+) -> tuple[str, int]:
     expires_delta = timedelta(minutes=settings.access_token_expire_minutes)
     now = datetime.now(UTC)
     payload: dict[str, Any] = {
@@ -32,6 +34,8 @@ def create_access_token(user_id: uuid.UUID, role: str) -> tuple[str, int]:
         "exp": now + expires_delta,
         "jti": secrets.token_hex(16),
     }
+    if family_id is not None:
+        payload["sid"] = str(family_id)
     token = jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
     return token, int(expires_delta.total_seconds())
 

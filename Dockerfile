@@ -1,10 +1,13 @@
 FROM node:22-alpine AS frontend
+RUN apk add --no-cache curl
 WORKDIR /build
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY index.html tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts ./
 COPY public ./public
 COPY src ./src
+COPY scripts/prepare-code-runtimes.mjs scripts/code-runtime-lock.json ./scripts/
+COPY docs/code-runtime-notices.md ./docs/
 RUN npm run build
 
 FROM python:3.12-slim AS runtime
@@ -13,7 +16,7 @@ RUN groupadd --system app && useradd --system --gid app --create-home app
 WORKDIR /app
 COPY backend/pyproject.toml ./
 COPY backend/app ./app
-RUN pip install --upgrade pip && pip install "."
+RUN python -m pip install --upgrade "pip>=26.2,<27" && python -m pip install "."
 COPY backend/alembic.ini ./
 COPY backend/alembic ./alembic
 COPY backend/data ./data

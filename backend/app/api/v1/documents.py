@@ -3,10 +3,12 @@ import uuid
 from fastapi import APIRouter, File, Form, Query, Response, UploadFile, status
 
 from app.config import settings
+from app.core.exceptions import AppError
 from app.core.storage import StorageBackend, selected_storage
 from app.dependencies import CurrentUser, DBSession
 from app.schemas import DocumentResponse, Page
 from app.services.documents import DocumentService
+from app.services.private_files import file_response
 from app.workers.document_tasks import process_document, process_document_task
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
@@ -66,3 +68,16 @@ async def delete_document(
 ) -> Response:
     await DocumentService(session, user.id, document_storage()).delete(document_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{document_id}/download")
+async def download_document(
+    document_id: uuid.UUID, session: DBSession, user: CurrentUser,
+) -> Response:
+    backend = document_storage()
+    document = await DocumentService(session, user.id, backend).get(document_id)
+    try:
+        content = await backend.download(document.storage_key)
+    except FileNotFoundError as exc:
+        raise AppError("FILE_NOT_FOUND", "Không tìm thấy file tài liệu.", 404) from exc
+    return file_response(content, document.original_filename, document.mime_type)

@@ -409,7 +409,7 @@ function refreshAccess(): Promise<TokenPair | null> {
   return refreshInFlight
 }
 
-async function authorized<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+async function authorizedResponse(path: string, init: RequestInit = {}, retry = true): Promise<Response> {
   const session = getSession()
   if (!session) throw new Error('Phiên đăng nhập đã hết hạn.')
   const headers = new Headers(init.headers)
@@ -424,22 +424,39 @@ async function authorized<T>(path: string, init: RequestInit = {}, retry = true)
   if (response.status === 401 && retry) {
     const next = await refreshAccess()
     if (!next) throw new Error('Phiên đăng nhập đã hết hạn.')
-    return authorized<T>(path, init, false)
+    return authorizedResponse(path, init, false)
   }
   if (!response.ok) {
     const body = await response.json().catch(() => null)
     throw new Error(messageFrom(body))
   }
-  if (response.status === 204) return undefined as T
   if (response.headers.get('content-type')?.includes('text/html')) {
     throw new Error('Máy chủ đang cập nhật tính năng này. Vui lòng thử lại sau.')
   }
+  return response
+}
+
+async function authorized<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await authorizedResponse(path, init)
+  if (response.status === 204) return undefined as T
   return response.json().catch(() => {
     throw new Error('Máy chủ trả về dữ liệu không hợp lệ. Vui lòng thử lại sau.')
   }) as Promise<T>
 }
 
 export const workspaceApi = {
+  messageAttachment: async (messageId: string, signal?: AbortSignal): Promise<Blob> => {
+    const response = await authorizedResponse(
+      `/social/messages/${encodeURIComponent(messageId)}/attachment`, { signal },
+    )
+    return response.blob()
+  },
+  downloadDocument: async (documentId: string, signal?: AbortSignal): Promise<Blob> => {
+    const response = await authorizedResponse(
+      `/documents/${encodeURIComponent(documentId)}/download`, { signal },
+    )
+    return response.blob()
+  },
   practiceSubjects: () => authorized<PracticeSubject[]>('/practice/subjects'),
   practiceExams: (subjectId: string) => authorized<PracticeExam[]>(`/practice/subjects/${subjectId}/exams`),
   practiceChapters: (subjectId: string) => authorized<PracticeChapter[]>(`/practice/subjects/${subjectId}/chapters`),
@@ -559,11 +576,22 @@ export const workspaceApi = {
   deleteCalendarEvent: (id: string) => authorized<void>(`/calendar/events/${id}`, { method: 'DELETE' }),
   realtime: (onEvent: (event: RealtimeMessageEvent) => void) => {
     const session = getSession()
-    if (!session || typeof WebSocket === 'undefined') return null
-    const url = new URL(`${REALTIME_BASE}/social/ws`, window.location.origin)
-    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
-    url.searchParams.set('token', session.access_token)
-    const socket = new WebSocket(url)
+    if (
+      !session || typeof WebSocket === 'undefined' ||
+      typeof session.access_token !== 'string' || session.access_token.length > 4096 ||
+      !/^[A-Za-z0-9._-]+$/.test(session.access_token)
+    ) return null
+    let socket: WebSocket
+    try {
+      const url = new URL(`${REALTIME_BASE}/social/ws`, window.location.origin)
+      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+      // Browser WebSocket has no custom Authorization header. Offer the bearer
+      // as a handshake subprotocol; the server selects only "nexamin", never JWT.
+      socket = new WebSocket(url, ['nexamin', `bearer.${session.access_token}`])
+    } catch {
+      // Realtime is optional; the existing authenticated polling remains usable.
+      return null
+    }
     socket.addEventListener('message', (message) => {
       try {
         const event = JSON.parse(String(message.data)) as RealtimeMessageEvent
