@@ -85,7 +85,7 @@ async def users(
 @router.post("/users/{user_id}/lock", response_model=AdminUserSummary)
 async def lock_user(user_id: uuid.UUID, session: DBSession, admin: AdminUser) -> AdminUserSummary:
     target = await session.scalar(
-        select(User).where(User.id == user_id).with_for_update()
+        select(User).where(User.id == user_id).with_for_update(of=User)
         .execution_options(populate_existing=True)
     )
     if target is None:
@@ -103,7 +103,7 @@ async def lock_user(user_id: uuid.UUID, session: DBSession, admin: AdminUser) ->
 @router.post("/users/{user_id}/unlock", response_model=AdminUserSummary)
 async def unlock_user(user_id: uuid.UUID, session: DBSession, admin: AdminUser) -> AdminUserSummary:
     target = await session.scalar(
-        select(User).where(User.id == user_id).with_for_update()
+        select(User).where(User.id == user_id).with_for_update(of=User)
         .execution_options(populate_existing=True)
     )
     if target is None:

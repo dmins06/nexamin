@@ -335,3 +335,28 @@ async def test_public_avatar_and_post_paths_still_work_with_private_routes(tmp_p
             response = await client.get(f"/media/{key}")
             assert response.status_code == 200
             assert response.content == b"SYNTHETIC_PUBLIC_IMAGE"
+
+
+@pytest.mark.asyncio
+async def test_missing_public_blob_image_returns_404_and_closes_client(monkeypatch):
+    from app import main
+    from app.core import storage as storage_module
+
+    monkeypatch.setattr(settings, "rate_limit_enabled", False)
+    monkeypatch.setattr(settings, "storage_provider", "blob")
+    closed = []
+
+    class MissingBlobClient:
+        async def head(self, key):
+            raise storage_module.BlobNotFoundError()
+
+        async def aclose(self):
+            closed.append(True)
+
+    monkeypatch.setattr(storage_module, "AsyncBlobClient", MissingBlobClient)
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=main.app), base_url="http://127.0.0.1",
+    ) as client:
+        response = await client.get(f"/media/users/{uuid.uuid4()}/avatar/{uuid.uuid4()}.png")
+    assert response.status_code == 404
+    assert closed == [True]

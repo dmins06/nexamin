@@ -344,3 +344,26 @@ def test_actual_asgi_websocket_handshake_never_accepts_a_query_token(
                 with client.websocket_connect(f"/social/ws?token={pair.access_token}"):
                     pass
             assert denied.value.code == 4401
+
+
+@pytest.mark.asyncio
+async def test_auth_user_lock_is_scoped_for_postgresql_nullable_university_join(
+    session, monkeypatch,
+):
+    from sqlalchemy.dialects import postgresql
+
+    from app.core.exceptions import AppError
+
+    captured = []
+    scalar = session.scalar
+
+    async def capture(statement, *args, **kwargs):
+        captured.append(str(statement.compile(dialect=postgresql.dialect())))
+        return await scalar(statement, *args, **kwargs)
+
+    monkeypatch.setattr(session, "scalar", capture)
+    with pytest.raises(AppError):
+        await AuthService(session)._locked_user(uuid.uuid4())
+    sql = captured[-1]
+    assert "LEFT OUTER JOIN universities" in sql
+    assert sql.rstrip().endswith("FOR UPDATE OF users")

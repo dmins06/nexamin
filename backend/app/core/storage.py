@@ -121,6 +121,8 @@ class BlobStorage:
             if not isinstance(url, str):
                 raise ValueError("Blob URL is missing")
             return url
+        except BlobNotFoundError as exc:
+            raise FileNotFoundError(key) from exc
         finally:
             await client.aclose()
 

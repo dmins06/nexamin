@@ -51,7 +51,7 @@ class AuthService:
 
     async def login(self, payload: LoginRequest) -> TokenPair:
         user = await self.session.scalar(
-            select(User).where(User.email == payload.email.lower()).with_for_update()
+            select(User).where(User.email == payload.email.lower()).with_for_update(of=User)
             .execution_options(populate_existing=True)
         )
         if (
@@ -139,7 +139,7 @@ class AuthService:
 
     async def _locked_user(self, user_id: uuid.UUID) -> User:
         user = await self.session.scalar(
-            select(User).where(User.id == user_id).with_for_update()
+            select(User).where(User.id == user_id).with_for_update(of=User)
             .execution_options(populate_existing=True)
         )
         if user is None:

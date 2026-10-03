@@ -101,3 +101,10 @@ Giới hạn: S3 cần bucket policy riêng tư thực tế; local media/server 
 - Chụp hash theo từng bản ghi users/documents/direct_messages/social_posts/courses và revision Alembic để đối chiếu sau rollout; chỉ metadata hash được lưu trong cache riêng, không log nội dung người dùng.
 - Render chuyển sang `STORAGE_PROVIDER=blob`, public/private tokens riêng và `PRIVATE_FILE_WRITES_PAUSED=true`; giữ nguyên mọi env khác. Tạm tắt auto-deploy trong cửa sổ rollout để kiểm soát đúng commit.
 - Kiểm chứng production dùng tài khoản/file synthetic riêng; sau kiểm tra read authorization mới mở writes và thử upload/download/delete thực tế. Dọn riêng fixtures, không sửa/xóa tài khoản hoặc dữ liệu có trước.
+
+## Kiểm chứng và sửa lỗi rollout đầu tiên
+
+- Commit code đầu tiên `9bdb001906e8e569a7b3091a5cd4085d3077b653`: Render `dep-db09enc9v7es73afqq40` live và Vercel `dpl_2mXS7NCUt1A6vQTPkAXFPRfSyFQR` READY. Docker build trên Render đã qua; Vercel build đã verify runtime assets và compile TypeScript.
+- Synthetic registration phát hiện lỗi PostgreSQL `FOR UPDATE cannot be applied to the nullable side of an outer join`. SQLite suite không phát hiện vì không thực hiện row locks. Giới hạn `FOR UPDATE OF users` cho login, issuance/refresh lock, password recovery và admin lock/unlock; giữ thứ tự khóa user trước refresh rows. PostgreSQL `EXPLAIN` read-only đã chấp nhận câu SQL sau sửa. Một registration fixture chưa nhận token đã được dọn đúng ID/email mới, không chạm tài khoản có trước.
+- Public avatar/post Blob không tồn tại cần trả 404; thêm chuyển `BlobNotFoundError` sang `FileNotFoundError`, catch ở route và regression test đóng client. Không đổi route allowlist hoặc policy public media.
+- Chưa mở writes: phải deploy các sửa này và chạy lại kiểm chứng owner/participant/logout/lock trước.

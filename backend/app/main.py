@@ -61,7 +61,10 @@ async def public_media(path: str) -> Response:
     ) is None:
         return Response(status_code=404, headers={"Cache-Control": "private, no-store"})
     if settings.storage_provider == "blob":
-        return RedirectResponse(await blob_storage.public_url(path))
+        try:
+            return RedirectResponse(await blob_storage.public_url(path))
+        except FileNotFoundError:
+            return Response(status_code=404)
     target = (MEDIA_ROOT / path).resolve()
     if MEDIA_ROOT.resolve() not in target.parents or not target.is_file():
         return Response(status_code=404)
