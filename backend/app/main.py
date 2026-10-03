@@ -18,6 +18,7 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.rate_limit import RateLimitMiddleware
 from app.core.storage import MEDIA_ROOT, blob_storage
+from app.core.upload_limits import UploadLimitsMiddleware
 from app.database import SessionFactory
 
 logger = configure_logging()
@@ -40,6 +41,7 @@ app = FastAPI(
     redoc_url="/redoc" if settings.app_env != "production" else None,
 )
 app.add_middleware(RateLimitMiddleware)
+app.add_middleware(UploadLimitsMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

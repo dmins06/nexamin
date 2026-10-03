@@ -4,7 +4,7 @@ Tiếp nối [hardening đầu tiên](security-hardening.md). Chính sách đã 
 
 ## Kết quả và ngoại lệ dữ liệu
 
-**Đã triển khai và kiểm chứng phần bảo mật Phase 1 trên production; upload/delete đã mở lại.** Backend/frontend dùng bản sửa `b54b0a6c71f298aece5843db53938c6e9a40abfb`. Chưa triển khai Phase 2.
+**Đã triển khai và kiểm chứng phần bảo mật Phase 1 trên production; upload/delete đã mở lại.** Backend/frontend dùng bản sửa `b54b0a6c71f298aece5843db53938c6e9a40abfb`. Phase 2 upload/giới hạn tài nguyên được theo dõi riêng trong [báo cáo Phase 2](upload-resource-limits.md).
 
 **Phần bảo toàn bytes cũ còn thiếu nguồn:** inventory trước rollout xác nhận 1 tài liệu, 4 file tin nhắn và 3 avatars trên Render local đều trả 404. Không có backup trùng key/filename trong project. Giữ nguyên cả 8 tham chiếu DB; không tạo file rỗng hoặc rewrite URL. Không thể phục hồi nội dung các file này chỉ từ metadata. Cần backup để hoàn tất phục hồi dữ liệu lịch sử; không báo 8 file này đã được migrate thành công.
 

@@ -33,7 +33,20 @@ class Settings(BaseSettings):
     legacy_media_base_urls: list[str] = [
         "https://studyhubai-bar8.onrender.com/media", "https://nexamin.id.vn/media",
     ]
-    max_upload_bytes: int = 25 * 1024 * 1024
+    max_upload_bytes: int = Field(default=25 * 1024 * 1024, ge=1, le=50 * 1024 * 1024)
+    upload_concurrency: int = Field(default=2, ge=1, le=4)
+    upload_body_timeout_seconds: float = Field(default=120, ge=0.1, le=300)
+    document_archive_max_bytes: int = Field(default=48 * 1024 * 1024, ge=1)
+    document_archive_max_member_bytes: int = Field(default=16 * 1024 * 1024, ge=1)
+    document_archive_max_entries: int = Field(default=2048, ge=1, le=4096)
+    document_archive_max_ratio: int = Field(default=200, ge=1)
+    document_max_pages: int = Field(default=500, ge=1, le=2000)
+    document_max_text_bytes: int = Field(default=1024 * 1024, ge=1, le=4 * 1024 * 1024)
+    document_max_chunks: int = Field(default=4000, ge=1, le=8000)
+    document_parser_memory_mib: int = Field(default=256, ge=128, le=512)
+    document_parser_cpu_seconds: int = Field(default=15, ge=1, le=60)
+    document_parser_timeout_seconds: float = Field(default=20, ge=0.1, le=120)
+    document_parser_concurrency: int = Field(default=1, ge=1, le=2)
 
     llm_provider: Literal["local", "gemini", "openai-compatible"] = "gemini"
     gemini_api_key: str = ""

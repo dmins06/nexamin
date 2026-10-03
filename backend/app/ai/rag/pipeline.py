@@ -23,12 +23,14 @@ class TextSplitter:
     def __init__(
         self, chunk_size: int = settings.chunk_size, overlap: int = settings.chunk_overlap
     ):
-        if overlap >= chunk_size:
+        if chunk_size <= 0 or overlap < 0 or overlap >= chunk_size:
             raise ValueError("chunk overlap must be smaller than chunk size")
         self.chunk_size = chunk_size
         self.overlap = overlap
 
-    def split(self, pages: list[tuple[int | None, str]]) -> list[tuple[int | None, str]]:
+    def split(
+        self, pages: list[tuple[int | None, str]], *, max_chunks: int | None = None,
+    ) -> list[tuple[int | None, str]]:
         chunks: list[tuple[int | None, str]] = []
         for page, text in pages:
             normalized = re.sub(r"\s+", " ", text).strip()
@@ -41,6 +43,8 @@ class TextSplitter:
                         end = boundary
                 chunk = normalized[cursor:end].strip()
                 if chunk:
+                    if max_chunks is not None and len(chunks) >= max_chunks:
+                        raise ValueError("Document exceeds maximum chunk count")
                     chunks.append((page, chunk))
                 if end >= len(normalized):
                     break

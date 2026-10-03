@@ -25,9 +25,10 @@ async def upload_document(
     course_id: uuid.UUID = Form(),
     file: UploadFile = File(),
 ) -> DocumentResponse:
-    document = await DocumentService(session, user.id, document_storage()).upload(course_id, file)
+    service = DocumentService(session, user.id, document_storage())
+    document = await service.upload(course_id, file)
     if settings.storage_provider in ("local", "blob"):
-        await process_document(document.id)
+        await process_document(document.id, prepared_pages=service.prepared_pages)
         await session.refresh(document)
     else:
         process_document_task.delay(str(document.id))
